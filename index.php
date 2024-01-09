@@ -9,6 +9,8 @@ use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use LinkCmsLib\User;
+use Dotenv\Dotenv;
+use Dotenv\Exception\InvalidPathException;
 
 
 Debugger::enable(Debugger::DEVELOPMENT);
@@ -28,7 +30,22 @@ $logger->pushHandler($warningHandler);
 $errorHandler = new StreamHandler(__DIR__.'/logs/error.log', Logger::ERROR);
 $logger->pushHandler($errorHandler);
 
+// Funkce pro načtení konfiguračních souborů
+function loadConfiguration($logger) {
+    $envPath = __DIR__; // Nastavte cestu ke složce, kde se nachází .env soubory
+    $dotenv = Dotenv::createImmutable($envPath, ['.env_local', '.env']);
 
+    try {
+        $dotenv->load();
+        return $_ENV; // nebo getenv() pro přístup k proměnným prostředí
+    } catch (InvalidPathException $e) {
+        $logger->error("Konfigurační soubor .env nebyl nalezen.");
+        throw $e;
+    }
+}
+
+// Načtení konfigurace
+$config = loadConfiguration($logger);
 
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     // $r->addRoute('GET', '/users', 'get_all_users_handler');
