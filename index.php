@@ -66,6 +66,12 @@ $capsule->setAsGlobal();
 // Spuštění Eloquentu
 $capsule->bootEloquent();
 
+$loader = new \Twig\Loader\FilesystemLoader('templates/');
+$twig = new \Twig\Environment($loader, [
+    'cache' => '/templates/cache',
+    // 'cache' => false, // Vypnout cache pro vývoj
+]);
+
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     // $r->addRoute('GET', '/users', 'get_all_users_handler');
     $r->addRoute('GET', '/users', function() use ($capsule) {
@@ -90,6 +96,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
 });
 
+echo $twig->render('head.twig', ['title' => 'Vítejte', 'greeting' => 'Ahoj, světe!']);
 
 // Fetch method and URI from somewhere
 $httpMethod = $_SERVER['REQUEST_METHOD'];
