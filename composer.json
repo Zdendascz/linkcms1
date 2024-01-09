@@ -1,9 +1,10 @@
 {
-    "name": "intel/linkcms1",
+    "name": "zdendas/linkcms1",
     "description": "lite verze system",
     "autoload": {
         "psr-4": {
-            "Intel\\Linkcms1\\": "src/"
+            "Intel\\Linkcms1\\": "src/",
+            "linkcms1\\Models\\": "models/"
         }
     },
     "authors": [
