@@ -1,56 +1,110 @@
 <?php
-session_start();
-// -- nastaveni preautorizace --------------------------------------------------
-if(!isset($_SESSION["auth"])){
-  $_SESSION["auth"]["jmeno"] = "host";
-  $_SESSION["auth"]["lng"] = "cz";
-  $_SESSION["auth"]["prava"] = 0;
-  $_SESSION["auth"]["log"] = 0;
-}
-require_once('engine.php');
+require 'vendor/autoload.php';
+
+use FastRoute\RouteCollector;
+use function FastRoute\simpleDispatcher;
+use Tracy\Debugger;
+use Monolog\Logger;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
+use LinkCmsLib\User;
 
 
-// -- nacteni smarty -----------------------------------------------------------
-require 'smarty/smarty/Smarty.class.php';
-class MojeSmarty extends Smarty {
-  public function __construct(){
-    $this->Smarty();
-    $this->template_dir = 'templates/';
-    $this->config_dir = 'smarty/config/';
-    $this->compile_dir = 'smarty/templates_c/';
-    $this->cache_dir = 'smarty/cache/';
-  }
-}
+Debugger::enable(Debugger::DEVELOPMENT);
 
-// -- definice udaju pro smarty ------------------------------------------------
-$smarty = new MojeSmarty;
-$smarty->assign('url',$_conf["web"]);
-$smarty->assign('meta_author',$_conf["meta_author"]);
-$smarty->assign('meta_copyright',$_conf["meta_copyright"]);
-$smarty->assign('meta_country',$_conf["meta_country"]);
-$smarty->assign('meta_language',$_conf["meta_language"]);
+// Vytvoření loggeru
+$logger = new Logger('linkcms');
+// Nastavení rotačního handleru pro logování úrovní DEBUG, NOTICE a INFO
+$debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug_info.log', 0, Logger::INFO);
+$logger->pushHandler($debugHandler);
+
+// Nastavení rotačního handleru pro logování úrovně WARNING
+$warningHandler = new RotatingFileHandler(__DIR__.'/logs/warning.log', 0, Logger::WARNING, false, true);
+$warningHandler->setFormatter(new LineFormatter(null, null, true, true));
+$logger->pushHandler($warningHandler);
+
+// Nastavení handleru pro logování úrovně ERROR do nerotujícího souboru
+$errorHandler = new StreamHandler(__DIR__.'/logs/error.log', Logger::ERROR);
+$logger->pushHandler($errorHandler);
 
 
-// -- vyplneni vyhledavani -----------------------------------------------------
-if(isset($_GET["slovo"]))
-  $smarty->assign('SEARCHvalue',$_GET["slovo"]);
-else
-  $smarty->assign('SEARCHvalue',"hledaný výraz");
-// -- nacteni obsahu webu ------------------------------------------------------
-if(!isset($_GET['str'])){
-  require_once("str/uvod.php");
-  $smartyPage = "uvod";
+
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
+    // $r->addRoute('GET', '/users', 'get_all_users_handler');
+    $r->addRoute('GET', '/users', function() {
+        $user = new User();
+        $user->get_all_user();
+    });
+    $r->addRoute('GET', '/user/{id:\d+}', function($id) {
+        $user = new User();
+        $user->get_user($id);
+    });
+
+    $r->addRoute('GET', '/', 'get_home');
+    // {id} must be a number (\d+)
+    //$r->addRoute('GET', '/user/{id:\d+}', 'get_user_handler');
+    // The /{title} suffix is optional
+    $r->addRoute('GET', '/articles/{id:\d+}[/{title}]', 'get_article_handler');
+
+    $r->addGroup('/admin', function (RouteCollector $r) {
+        $r->addRoute('GET', '/do-something', 'handler');
+        $r->addRoute('GET', '/do-another-thing', 'handler');
+        $r->addRoute('GET', '/do-something-else', 'handler');
+    });
+});
+
+
+// Fetch method and URI from somewhere
+$httpMethod = $_SERVER['REQUEST_METHOD'];
+$uri = $_SERVER['REQUEST_URI'];
+
+// Nastavení base path
+$basePath = '/linkcms1';
+
+// Získání URI a odstranění base path
+$uri = $_SERVER['REQUEST_URI'];
+if (substr($uri, 0, strlen($basePath)) == $basePath) {
+    $uri = substr($uri, strlen($basePath));
 }
-else if(!file_exists("str/".$_GET['str'].".php")){
-  require_once("str/sys/404.php");
-  $smartyPage = "404";
+
+// Strip query string (?foo=bar) and decode URI
+if (false !== $pos = strpos($uri, '?')) {
+    $uri = substr($uri, 0, $pos);
 }
-else{
-  require_once("str/".$_GET['str'].".php");
-  $smartyPage = $_GET['str'];
+$uri = rawurldecode($uri);
+echo "HttpMethod: ".$httpMethod." URI: " . $uri. "<br />";
+$routeInfo = $dispatcher->dispatch($httpMethod, $uri);
+
+switch ($routeInfo[0]) {
+    case FastRoute\Dispatcher::NOT_FOUND:
+        // ... 404 Not Found
+        $logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
+        break;
+    case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
+        $allowedMethods = $routeInfo[1];
+        $logger->error('Přístup ke stránce '.$uri." nebyl povolen s metodou".$httpMethod);
+        // ... 405 Method Not Allowed
+        break;
+    case FastRoute\Dispatcher::FOUND:
+        $handler = $routeInfo[1];
+        $vars = $routeInfo[2];
+        // ... call $handler with $vars
+        call_user_func_array($handler, $vars);
+        break;
 }
-$smarty->assign('currentPage',$smartyPage);
-$smarty->display('layout/hlavicka.tpl');
-$smarty->display($smartyPage.'.tpl');
-$smarty->display('layout/paticka.tpl');
+
+// function get_all_users_handler() {
+//     // Logika pro načtení dat uživatelů
+//     // Například získání dat z databáze a jejich zobrazení
+//     echo "jeden to!<br />vars: ".$vars;
+// }
+
+// class user {
+    
+//     public function get_user_handler($id){
+//         echo "toto jede taky a je tu ".$id;
+//     }
+
+// }
 ?>
