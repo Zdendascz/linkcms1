@@ -8,10 +8,10 @@ use Monolog\Logger;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
-use LinkCmsLib\User;
 use Dotenv\Dotenv;
 use Dotenv\Exception\InvalidPathException;
-
+use Illuminate\Database\Capsule\Manager as Capsule;
+use LinkCmsLib\User;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 
@@ -47,11 +47,30 @@ function loadConfiguration($logger) {
 // Načtení konfigurace
 $config = loadConfiguration($logger);
 
-$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
+$capsule = new Capsule;
+
+$capsule->addConnection([
+    'driver'    => $config['DB_DRIVER'],
+    'host'      => $config['DB_HOST'],
+    'database'  => $config['DB_NAME'],
+    'username'  => $config['DB_USER'],
+    'password'  => $config['DB_PASSWORD'],
+    'charset'   => $config['DB_CHARSET'],
+    'collation' => $config['DB_COLLATION'],
+    'prefix'    => $config['DB_PREFIX'],
+]);
+
+// Nastavení Eloquentu pro globální použití (volitelné)
+$capsule->setAsGlobal();
+
+// Spuštění Eloquentu
+$capsule->bootEloquent();
+
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     // $r->addRoute('GET', '/users', 'get_all_users_handler');
-    $r->addRoute('GET', '/users', function() {
-        $user = new User();
-        $user->get_all_user();
+    $r->addRoute('GET', '/users', function() use ($capsule) {
+        $user = new User($capsule);
+        $user->get_all_users();
     });
     $r->addRoute('GET', '/user/{id:\d+}', function($id) {
         $user = new User();
@@ -77,7 +96,7 @@ $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
 
 // Nastavení base path
-$basePath = '/linkcms1';
+$basePath = $config['BASE_PATH'];
 
 // Získání URI a odstranění base path
 $uri = $_SERVER['REQUEST_URI'];
@@ -90,7 +109,7 @@ if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
 }
 $uri = rawurldecode($uri);
-echo "HttpMethod: ".$httpMethod." URI: " . $uri. "<br />";
+
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 switch ($routeInfo[0]) {
