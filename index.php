@@ -1,5 +1,6 @@
 <?php
 require 'vendor/autoload.php';
+require 'class/control.php';
 
 use FastRoute\RouteCollector;
 use function FastRoute\simpleDispatcher;
@@ -45,19 +46,19 @@ function loadConfiguration($logger) {
 }
 
 // Načtení konfigurace
-$config = loadConfiguration($logger);
+loadConfiguration($logger);
 
 $capsule = new Capsule;
 
 $capsule->addConnection([
-    'driver'    => $config['DB_DRIVER'],
-    'host'      => $config['DB_HOST'],
-    'database'  => $config['DB_NAME'],
-    'username'  => $config['DB_USER'],
-    'password'  => $config['DB_PASSWORD'],
-    'charset'   => $config['DB_CHARSET'],
-    'collation' => $config['DB_COLLATION'],
-    'prefix'    => $config['DB_PREFIX'],
+    'driver'    => $_SERVER['DB_DRIVER'],
+    'host'      => $_SERVER['DB_HOST'],
+    'database'  => $_SERVER['DB_NAME'],
+    'username'  => $_SERVER['DB_USER'],
+    'password'  => $_SERVER['DB_PASSWORD'],
+    'charset'   => $_SERVER['DB_CHARSET'],
+    'collation' => $_SERVER['DB_COLLATION'],
+    'prefix'    => $_SERVER['DB_PREFIX'],
 ]);
 
 // Nastavení Eloquentu pro globální použití (volitelné)
@@ -65,6 +66,11 @@ $capsule->setAsGlobal();
 
 // Spuštění Eloquentu
 $capsule->bootEloquent();
+
+//volání informací o doméně
+$domainInfo = new \linkcms1\domainControl($capsule);
+$domainInfo->loadDomain();
+
 
 $loader = new \Twig\Loader\FilesystemLoader('templates/');
 $twig = new \Twig\Environment($loader, [
@@ -102,13 +108,10 @@ echo $twig->render('head.twig', ['title' => 'Vítejte', 'greeting' => 'Ahoj, sv�
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
 
-// Nastavení base path
-$basePath = $config['BASE_PATH'];
-
 // Získání URI a odstranění base path
 $uri = $_SERVER['REQUEST_URI'];
-if (substr($uri, 0, strlen($basePath)) == $basePath) {
-    $uri = substr($uri, strlen($basePath));
+if (substr($uri, 0, strlen($_SERVER['BASE_PATH'])) == $_SERVER['BASE_PATH']) {
+    $uri = substr($uri, strlen($_SERVER['BASE_PATH']));
 }
 
 // Strip query string (?foo=bar) and decode URI
@@ -136,18 +139,4 @@ switch ($routeInfo[0]) {
         call_user_func_array($handler, $vars);
         break;
 }
-
-// function get_all_users_handler() {
-//     // Logika pro načtení dat uživatelů
-//     // Například získání dat z databáze a jejich zobrazení
-//     echo "jeden to!<br />vars: ".$vars;
-// }
-
-// class user {
-    
-//     public function get_user_handler($id){
-//         echo "toto jede taky a je tu ".$id;
-//     }
-
-// }
 ?>

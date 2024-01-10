@@ -4,7 +4,8 @@
     "autoload": {
         "psr-4": {
             "Intel\\Linkcms1\\": "src/",
-            "linkcms1\\Models\\": "models/"
+            "linkcms1\\Models\\": "models/",
+            "App\\": "class/"
         }
     },
     "authors": [

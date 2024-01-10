@@ -2278,12 +2278,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:Zdendascz/linkcmslib.git",
-                "reference": "a381cafa8b8dc151c139f614c5614cd303caab9b"
+                "reference": "2dd3716c98036296eaa702ff961fac0ecd4d9286"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Zdendascz/linkcmslib/zipball/a381cafa8b8dc151c139f614c5614cd303caab9b",
-                "reference": "a381cafa8b8dc151c139f614c5614cd303caab9b",
+                "url": "https://api.github.com/repos/Zdendascz/linkcmslib/zipball/2dd3716c98036296eaa702ff961fac0ecd4d9286",
+                "reference": "2dd3716c98036296eaa702ff961fac0ecd4d9286",
                 "shasum": ""
             },
             "require": {
@@ -2311,7 +2311,7 @@
                 "source": "https://github.com/Zdendascz/linkcmslib/tree/master",
                 "issues": "https://github.com/Zdendascz/linkcmslib/issues"
             },
-            "time": "2024-01-09T14:59:39+00:00"
+            "time": "2024-01-09T18:07:17+00:00"
         },
         {
             "name": "vlucas/phpdotenv",
