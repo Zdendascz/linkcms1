@@ -70,6 +70,7 @@ $capsule->bootEloquent();
 //volání informací o doméně
 $domainInfo = new \linkcms1\domainControl($capsule);
 $domainInfo->loadDomain();
+$url = $domainInfo->loadSite();
 
 
 $loader = new \Twig\Loader\FilesystemLoader('templates/');
@@ -78,20 +79,19 @@ $twig = new \Twig\Environment($loader, [
     // 'cache' => false, // Vypnout cache pro vývoj
 ]);
 
-$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule, $domainInfo) {
     // $r->addRoute('GET', '/users', 'get_all_users_handler');
     $r->addRoute('GET', '/users', function() use ($capsule) {
         $user = new User($capsule);
         $user->get_all_users();
     });
-    $r->addRoute('GET', '/user/{id:\d+}', function($id) {
-        $user = new User();
+    $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
+        $user = new User($capsule);
         $user->get_user($id);
     });
 
-    $r->addRoute('GET', '/', 'get_home');
+    $r->addRoute('GET', '/', [$domainInfo, 'get_home']);
     // {id} must be a number (\d+)
-    //$r->addRoute('GET', '/user/{id:\d+}', 'get_user_handler');
     // The /{title} suffix is optional
     $r->addRoute('GET', '/articles/{id:\d+}[/{title}]', 'get_article_handler');
 
@@ -137,6 +137,7 @@ switch ($routeInfo[0]) {
         $vars = $routeInfo[2];
         // ... call $handler with $vars
         call_user_func_array($handler, $vars);
+        echo '<pre>' . print_r($vars, true) . '</pre>';
         break;
 }
 ?>
