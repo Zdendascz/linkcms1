@@ -144,7 +144,7 @@ switch ($routeInfo[0]) {
         $vars = $routeInfo[2];
         // ... call $handler with $vars
         call_user_func_array($handler, $vars);
-        echo '<pre> Vars:' . print_r($vars, true) . '</pre>';
+        //echo '<pre> Vars:' . print_r($vars, true) . '</pre>';
         break;
 }
 ?>
