@@ -13,6 +13,7 @@ use Dotenv\Dotenv;
 use Dotenv\Exception\InvalidPathException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
+use linkcms1\Models\Category;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 
@@ -75,8 +76,8 @@ $url = $domainInfo->loadSite();
 
 $loader = new \Twig\Loader\FilesystemLoader('templates/');
 $twig = new \Twig\Environment($loader, [
-    'cache' => '/templates/cache',
-    // 'cache' => false, // Vypnout cache pro vývoj
+    //'cache' => '/templates/cache',
+     'cache' => false, // Vypnout cache pro vývoj
 ]);
 
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule, $domainInfo) {
@@ -102,7 +103,13 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
 });
 
-echo $twig->render('head.twig', ['title' => 'Vítejte', 'greeting' => 'Ahoj, světe!']);
+$variables = [
+    'title' => 'Vítejte',
+    'greeting' => 'Ahoj, světe!',
+    'navigation' => Category::generateNavigation( $url["id"], null)
+];
+
+echo $twig->render('head.twig', $variables);
 
 // Fetch method and URI from somewhere
 $httpMethod = $_SERVER['REQUEST_METHOD'];
@@ -137,7 +144,7 @@ switch ($routeInfo[0]) {
         $vars = $routeInfo[2];
         // ... call $handler with $vars
         call_user_func_array($handler, $vars);
-        echo '<pre>' . print_r($vars, true) . '</pre>';
+        echo '<pre> Vars:' . print_r($vars, true) . '</pre>';
         break;
 }
 ?>

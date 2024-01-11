@@ -4,6 +4,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use linkcms1\Models\User as EloquentUser;
 use linkcms1\Models\Site;
 use linkcms1\Models\Url;
+use linkcms1\Models\Category;
 
 
 
@@ -37,8 +38,10 @@ class domainControl {
 
     public function loadSite(){
 
-       return Url::where('url', '=', str_replace($_SERVER['SITE_DOMAIN'], '', $_SERVER['REQUEST_URI']))->first();    
-       // echo $_SERVER['HTTP_HOST'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
+       $url = Url::where('url', '=', str_replace($_SERVER['SITE_DOMAIN'], '', $_SERVER['REQUEST_URI']))->first();    
+        //echo $_SERVER['HTTP_HOST'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
+        return $url;
+    
     }
 
     public static function get_home(){
