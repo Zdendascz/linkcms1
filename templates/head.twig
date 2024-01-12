@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ title }}</title>
+    <title>{{ pageData.categoryInfo.title }}</title>
 </head>
 <body>
-    <h1>{{ greeting }}</h1>
-    navig:{{ navigation|raw }}
+    <h1>{{ pageData.categoryInfo.title }}</h1>
+    {{ navigation|raw }}
 
 </body>
 </html>
