@@ -5,7 +5,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Article extends Model
 {
-    use HasFactory, SoftDeletes;
 
     protected $table = 'articles'; // Název tabulky v databázi
 

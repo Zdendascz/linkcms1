@@ -5,15 +5,18 @@ use linkcms1\Models\User as EloquentUser;
 use linkcms1\Models\Site;
 use linkcms1\Models\Url;
 use linkcms1\Models\Category;
+use Monolog\Logger;
 
 
 
 class domainControl {
 
     protected $capsule;
+    protected $logger;
 
-    public function __construct($capsule) {
+    public function __construct($capsule, Logger $logger) {
         $this->capsule = $capsule;
+        $this->logger = $logger;
 
     }
 
@@ -31,17 +34,42 @@ class domainControl {
             }
         }
         else{
-            $logger->error('Nepodařilo se načíst data domény '.$_SERVER['HTTP_HOST']);
+            $this->logger->error('Nepodařilo se načíst data domény '.$_SERVER['HTTP_HOST']);
         }
 
     }
 
-    public function loadSite(){
+    public function loadSite() {
+        // Rozdělení URL na komponenty a získání pouze cesty
+        $parsedUrl = parse_url($_SERVER['REQUEST_URI']);
+        $path = $parsedUrl['path'];
 
-       $url = Url::where('url', '=', str_replace($_SERVER['SITE_DOMAIN'], '', $_SERVER['REQUEST_URI']))->first();    
-        //echo $_SERVER['SITE_DOMAIN'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
-        return $url;
+        // Odstranění domény, pokud je součástí cesty
+        $path = str_replace('http://' . $_SERVER['SITE_DOMAIN'], '', $path);
+        $path = str_replace('https://' . $_SERVER['SITE_DOMAIN'], '', $path);
+
+        // Vyhledání URL v databázi, která odpovídá jak doméně, tak cestě
+        $url = Url::where('domain', '=', $_SERVER['SITE_DOMAIN'])
+                ->where('url', '=', $path)
+                ->first();
+
+                 
     
+        // Kontrola, zda byl záznam nalezen
+        if ($url === null) {
+            // Zde můžete zpracovat situaci, kdy záznam nebyl nalezen
+            echo "Záznam nenalezen: ".$_SERVER['SITE_DOMAIN'].$path;
+            //this->logger->warning('Adresa '.$_SERVER['SITE_DOMAIN'].$path." nenalezena");
+
+            // Můžete vrátit null nebo jinou výchozí hodnotu
+            return null;
+        }
+
+        //echo $_SERVER['REQUEST_URI'];
+        // Zakomentovaný kód pro debug
+        //echo $_SERVER['SITE_DOMAIN'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
+
+        return $url->toArray();
     }
 
     public static function get_home(){

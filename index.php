@@ -69,9 +69,9 @@ $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
 //volání informací o doméně
-$domainInfo = new \linkcms1\domainControl($capsule);
+$domainInfo = new \linkcms1\domainControl($capsule, $logger);
 $domainInfo->loadDomain();
-$url = $domainInfo->loadSite();
+
 
 
 $loader = new \Twig\Loader\FilesystemLoader('templates/');
@@ -81,7 +81,7 @@ $twig = new \Twig\Environment($loader, [
 ]);
 
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule, $domainInfo) {
-    // $r->addRoute('GET', '/users', 'get_all_users_handler');
+    
     $r->addRoute('GET', '/users', function() use ($capsule) {
         $user = new User($capsule);
         $user->get_all_users();
@@ -92,24 +92,23 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
 
     $r->addRoute('GET', '/', [$domainInfo, 'get_home']);
-    // {id} must be a number (\d+)
-    // The /{title} suffix is optional
-    $r->addRoute('GET', '/articles/{id:\d+}[/{title}]', 'get_article_handler');
+
 
     $r->addGroup('/admin', function (RouteCollector $r) {
         $r->addRoute('GET', '/do-something', 'handler');
         $r->addRoute('GET', '/do-another-thing', 'handler');
         $r->addRoute('GET', '/do-something-else', 'handler');
     });
+    $r->addRoute('GET', '/{string}', function($string) {
+
+        // Tady můžete zpracovat $retezec
+        echo "Zachycený řetězec: " . $string;
+        // Zpracování GET parametrů
+        foreach ($_GET as $key => $value) {
+            echo "<br>GET parametr: $key, Hodnota: $value";
+        }
+    });
 });
-
-$variables = [
-    'title' => 'Vítejte',
-    'greeting' => 'Ahoj, světe!',
-    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null)
-];
-
-echo $twig->render('head.twig', $variables);
 
 // Fetch method and URI from somewhere
 $httpMethod = $_SERVER['REQUEST_METHOD'];
@@ -129,6 +128,10 @@ $uri = rawurldecode($uri);
 
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
+$handlers = [
+    "articles" => "linkcms1\Models\Category",
+    "get_all_users" => "linkcms1\Models\User"];
+
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
         // ... 404 Not Found
@@ -139,12 +142,28 @@ switch ($routeInfo[0]) {
         $logger->error('Přístup ke stránce '.$uri." nebyl povolen s metodou".$httpMethod);
         // ... 405 Method Not Allowed
         break;
-    case FastRoute\Dispatcher::FOUND:
-        $handler = $routeInfo[1];
-        $vars = $routeInfo[2];
-        // ... call $handler with $vars
-        call_user_func_array($handler, $vars);
-        //echo '<pre> Vars:' . print_r($vars, true) . '</pre>';
-        break;
+        case FastRoute\Dispatcher::FOUND:
+            $handler = $routeInfo[1];
+            $vars = $routeInfo[2];
+            // ... call $handler with $vars
+            $url = $domainInfo->loadSite();
+            $vars = array_merge($vars, $url);
+            $vars = array_values($vars);
+            $methodName = $vars[4];
+            $instance = new $handlers[$methodName]();
+            $displayData = call_user_func_array([$instance, $methodName], $vars);
+            echo '<pre> Vars:' . print_r($displayData, true) . '</pre>';
+            break;
 }
+
+$variables = [
+    'title' => 'Vítejte',
+    'greeting' => 'Ahoj, světe!',
+    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null),
+    'displayData' => $displayData
+];
+
+echo $twig->render('head.twig', $variables);
+
+
 ?>

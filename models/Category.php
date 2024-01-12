@@ -90,6 +90,19 @@ class Category extends Model
         }
         return $attributes;
     }
+
+    public function articles($vars)
+    {
+        return $this->belongsToMany(Article::class, 'article_categories', 'category_id', 'article_id')
+                ->where('status', 'active') // Filtruje pouze aktivní články
+                ->where('category_id', $vars[5]) // Filtruje články v dané kategorii
+                ->get();
+    }
+
+    public function activeArticles()
+    {
+        return $this->articles()->where('status', 'active')->get();
+    }
     // Další metody a logika pro model mohou být zde
 }
 ?>
