@@ -3,3 +3,4 @@
 .env_local
 /vendor/
 *_backup.php
+/logs/
