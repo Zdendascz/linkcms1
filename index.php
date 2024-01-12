@@ -106,7 +106,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
 $variables = [
     'title' => 'Vítejte',
     'greeting' => 'Ahoj, světe!',
-    'navigation' => Category::generateNavigation( $url["id"], null)
+    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null)
 ];
 
 echo $twig->render('head.twig', $variables);

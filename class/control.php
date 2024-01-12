@@ -39,7 +39,7 @@ class domainControl {
     public function loadSite(){
 
        $url = Url::where('url', '=', str_replace($_SERVER['SITE_DOMAIN'], '', $_SERVER['REQUEST_URI']))->first();    
-        //echo $_SERVER['HTTP_HOST'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
+        //echo $_SERVER['SITE_DOMAIN'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
         return $url;
     
     }
