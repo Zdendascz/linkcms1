@@ -90,6 +90,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
     $r->addRoute('GET', '', function($string = "") {
     });
+    $r->addRoute('GET', '/', function($string = "") {
+    });
     $r->addRoute('GET', '/{string:.+}', function($string) {
     });
 });
