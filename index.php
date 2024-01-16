@@ -72,14 +72,6 @@ $capsule->bootEloquent();
 $domainInfo = new \linkcms1\domainControl($capsule, $logger);
 $domainInfo->loadDomain();
 
-
-
-$loader = new \Twig\Loader\FilesystemLoader('templates/');
-$twig = new \Twig\Environment($loader, [
-    //'cache' => '/templates/cache',
-     'cache' => false, // Vypnout cache pro vývoj
-]);
-
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     
     // $r->addRoute('GET', '/users', function() use ($capsule) {
@@ -98,7 +90,6 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
     $r->addRoute('GET', '/{string:.+}', function($string) {
         // Tady můžete zpracovat $retezec
-          Tracy\Debugger::barDump($string, 'Routerem zachycený řetězec');
         // Zpracování GET parametrů
         // foreach ($_GET as $key => $value) {
         //     echo "<br>GET parametr: $key, Hodnota: $value";
@@ -115,7 +106,6 @@ $uri = $_SERVER['REQUEST_URI'];
 if (substr($uri, 0, strlen($_SERVER['BASE_PATH'])) == $_SERVER['BASE_PATH']) {
     $uri = substr($uri, strlen($_SERVER['BASE_PATH']));
 }
-echo $uri;
 // Strip query string (?foo=bar) and decode URI
 if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
@@ -127,8 +117,9 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 $handlers = [
     "articles" => "linkcms1\Models\Category",
     "get_all_users" => "linkcms1\Models\User",
-    "categories" => "linkcms1\Models\Category"];
-    Tracy\Debugger::barDump($routeInfo, 'Route info');
+    "categories" => "linkcms1\Models\Category",
+    "articleDetail" => "linkcms1\Models\Category"];
+    //Tracy\Debugger::barDump($routeInfo, 'Route info');
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
@@ -145,8 +136,8 @@ switch ($routeInfo[0]) {
             $handler = $routeInfo[1];
             $vars = $routeInfo[2];
             // ... call $handler with $vars
-            $url = $domainInfo->loadSite();
-            $vars = array_merge($vars, $url);
+            $urlInfo = $domainInfo->loadSite();
+            $vars = array_merge($vars, $urlInfo);
             $vars = array_values($vars);
             $methodName = $vars[4];
             Tracy\Debugger::barDump($vars, 'Vars');
@@ -163,10 +154,16 @@ switch ($routeInfo[0]) {
             switch($vars[5]){
                 case 'categories' : {
                     $pageData = $instance->getCategoryInfo($vars[6]);
+                    $renderPage = "category.twig";
+                    break;
+                }
+                case 'articles' : {
+                    $pageData = $instance->getCategoryInfo($vars[6]);
+                    $renderPage = "article.twig";
                     break;
                 }
                 default : {
-                    echo "ee nejde";
+                    $renderPage = "index.twig";
                     break;
                 }
             }
@@ -178,8 +175,15 @@ $variables = [
     'displayData' => $displayData,
     'pageData' => $pageData
 ];
+Tracy\Debugger::barDump($urlInfo, 'Url info');
 
-echo $twig->render('head.twig', $variables);
+$loader = new \Twig\Loader\FilesystemLoader($_SERVER["SITE_TEMPLATE_DIR"]);
+$twig = new \Twig\Environment($loader, [
+    //'cache' => '/templates/cache',
+     'cache' => false, // Vypnout cache pro vývoj
+]);
 
+echo $twig->render($renderPage, $variables);
 
+Tracy\Debugger::barDump($_SERVER, 'Server info');
 ?>

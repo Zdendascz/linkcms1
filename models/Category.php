@@ -92,20 +92,39 @@ class Category extends Model
         return $attributes;
     }
 
-/**
- * Získá aktivní články v kategorii.
- *
- * @return \Illuminate\Database\Eloquent\Collection
- */
-public function articles($category_id)
-{
-    Debugger::barDump($category_id,'ID kategorie');
-    return ArticleCategory::where('category_id', $category_id)
-        ->join('articles', 'article_categories.article_id', '=', 'articles.id')
-        ->where('articles.status', 'active')
-        ->get();
-        
-}
+    /**
+     * Získá aktivní články v kategorii.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function articles($category_id)
+    {
+        //Debugger::barDump($category_id,'ID kategorie');
+        return ArticleCategory::where('category_id', $category_id)
+            ->join('articles', 'article_categories.article_id', '=', 'articles.id')
+            ->join('urls', 'urls.model_id', '=', 'articles.id')
+            ->where('articles.status', 'active')
+            ->where('urls.model', 'articles')
+            ->get();
+            
+    }
+
+    /**
+     * Získá detail konkrétního článku
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function articleDetail($article_id)
+    {
+        //Debugger::barDump($category_id,'ID kategorie');
+        return ArticleCategory::where('articles.id', $article_id)
+            ->join('articles', 'article_categories.article_id', '=', 'articles.id')
+            ->join('urls', 'urls.model_id', '=', 'articles.id')
+            ->where('articles.status', 'active')
+            ->where('urls.model', 'articles')
+            ->get();
+            
+    }
 
 
     /**
