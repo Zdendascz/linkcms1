@@ -21,7 +21,7 @@ class domainControl {
     }
 
     public function loadDomain (){
-        $domain = Site::where('domain', '=', $_SERVER['HTTP_HOST'])->first();
+        $domain = Site::where('domain', '=', str_replace("www.","",$_SERVER['HTTP_HOST']))->first();
         if ($domain) {
             foreach ($domain->getAttributes() as $key => $value) {
                 // Kontrola, zda hodnota je JSON a dekódování
