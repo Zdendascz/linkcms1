@@ -2,6 +2,7 @@
 namespace linkcms1\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Tracy\Debugger;
 
 class Category extends Model
 {
@@ -91,17 +92,84 @@ class Category extends Model
         return $attributes;
     }
 
-    public function articles($vars)
+/**
+ * Získá aktivní články v kategorii.
+ *
+ * @return \Illuminate\Database\Eloquent\Collection
+ */
+public function articles($category_id)
+{
+    Debugger::barDump($category_id,'ID kategorie');
+    return ArticleCategory::where('category_id', $category_id)
+        ->join('articles', 'article_categories.article_id', '=', 'articles.id')
+        ->where('articles.status', 'active')
+        ->get();
+        
+}
+
+
+    /**
+     * Vrací celou cestu kategorie jako pole kategorií.
+     *
+     * @return array
+     */
+    public function getPath()
     {
-        return $this->belongsToMany(Article::class, 'article_categories', 'category_id', 'article_id')
-                ->where('status', 'active') // Filtruje pouze aktivní články
-                ->where('category_id', $vars[5]) // Filtruje články v dané kategorii
-                ->get();
+        $path = [];
+        $category = $this;
+
+        while ($category) {
+            array_unshift($path, $category); // Přidá kategorii na začátek pole
+            $category = $category->parentCategory; // Přechod k nadřazené kategorii
+        }
+
+        return $path;
     }
 
-    public function activeArticles()
+    /**
+     * Vrací informace o kategorii a její cestu.
+     *
+     * @param int $id ID kategorie
+     * @return array
+     */
+    public static function getCategoryInfo($id)
     {
-        return $this->articles()->where('status', 'active')->get();
+        $category = self::find($id);
+        if (!$category) {
+            return null; // nebo vyvolání výjimky
+        }
+
+        $path = $category->getPath(); // Získání cesty kategorie
+        $pathInfo = [];
+
+        foreach ($path as $cat) {
+            $pathInfo[] = [
+                'id' => $cat->id,
+                'title' => $cat->title,
+                'display_name' => $cat->display_name,
+                'top_text' => $cat->top_text,
+                'bottom_text' => $cat->bottom_text,
+                'url' => $cat->url,
+                'meta' => $cat->meta
+
+                
+                // lze přidat další požadované atributy
+            ];
+        }
+
+        return [
+            'categoryInfo' => [
+                'id' => $category->id,
+                'title' => $category->title,
+                'display_name' => $category->display_name,
+                'top_text' => $category->top_text,
+                'bottom_text' => $category->bottom_text,
+                'url' => $category->url,
+                'meta' => $category->meta
+                // přidejte další požadované atributy
+            ],
+            'pathInfo' => $pathInfo
+        ];
     }
     // Další metody a logika pro model mohou být zde
 }

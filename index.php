@@ -80,33 +80,29 @@ $twig = new \Twig\Environment($loader, [
      'cache' => false, // Vypnout cache pro vývoj
 ]);
 
-$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule, $domainInfo) {
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     
-    $r->addRoute('GET', '/users', function() use ($capsule) {
-        $user = new User($capsule);
-        $user->get_all_users();
-    });
-    $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
-        $user = new User($capsule);
-        $user->get_user($id);
-    });
-
-    $r->addRoute('GET', '/', [$domainInfo, 'get_home']);
-
+    // $r->addRoute('GET', '/users', function() use ($capsule) {
+    //     $user = new User($capsule);
+    //     $user->get_all_users();
+    // });
+    // $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
+    //     $user = new User($capsule);
+    //     $user->get_user($id);
+    // });
 
     $r->addGroup('/admin', function (RouteCollector $r) {
         $r->addRoute('GET', '/do-something', 'handler');
         $r->addRoute('GET', '/do-another-thing', 'handler');
         $r->addRoute('GET', '/do-something-else', 'handler');
     });
-    $r->addRoute('GET', '/{string}', function($string) {
-
+    $r->addRoute('GET', '/{string:.+}', function($string) {
         // Tady můžete zpracovat $retezec
-        echo "Zachycený řetězec: " . $string;
+          Tracy\Debugger::barDump($string, 'Routerem zachycený řetězec');
         // Zpracování GET parametrů
-        foreach ($_GET as $key => $value) {
-            echo "<br>GET parametr: $key, Hodnota: $value";
-        }
+        // foreach ($_GET as $key => $value) {
+        //     echo "<br>GET parametr: $key, Hodnota: $value";
+        // }
     });
 });
 
@@ -119,7 +115,7 @@ $uri = $_SERVER['REQUEST_URI'];
 if (substr($uri, 0, strlen($_SERVER['BASE_PATH'])) == $_SERVER['BASE_PATH']) {
     $uri = substr($uri, strlen($_SERVER['BASE_PATH']));
 }
-
+echo $uri;
 // Strip query string (?foo=bar) and decode URI
 if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
@@ -130,12 +126,15 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 $handlers = [
     "articles" => "linkcms1\Models\Category",
-    "get_all_users" => "linkcms1\Models\User"];
+    "get_all_users" => "linkcms1\Models\User",
+    "categories" => "linkcms1\Models\Category"];
+    Tracy\Debugger::barDump($routeInfo, 'Route info');
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
         // ... 404 Not Found
-        $logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
+        Tracy\Debugger::barDump($routeInfo[0], 'Stránka nebyla nalezena');        
+        //$logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
         break;
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
         $allowedMethods = $routeInfo[1];
@@ -150,17 +149,34 @@ switch ($routeInfo[0]) {
             $vars = array_merge($vars, $url);
             $vars = array_values($vars);
             $methodName = $vars[4];
+            Tracy\Debugger::barDump($vars, 'Vars');
             $instance = new $handlers[$methodName]();
-            $displayData = call_user_func_array([$instance, $methodName], $vars);
-            echo '<pre> Vars:' . print_r($displayData, true) . '</pre>';
+            Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
+            $displayData = call_user_func_array([$instance, $methodName], array($vars[6]));
+            
+            // Převod výsledků na pole, pokud jsou vráceny jako Eloquent Collection
+            if ($displayData instanceof Illuminate\Database\Eloquent\Collection) {
+                $displayData = $displayData->toArray();
+            }
+            Tracy\Debugger::barDump($displayData, 'Proměmné obsahu');
+            
+            switch($vars[5]){
+                case 'categories' : {
+                    $pageData = $instance->getCategoryInfo($vars[6]);
+                    break;
+                }
+                default : {
+                    echo "ee nejde";
+                    break;
+                }
+            }
             break;
 }
 
 $variables = [
-    'title' => 'Vítejte',
-    'greeting' => 'Ahoj, světe!',
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null),
-    'displayData' => $displayData
+    'displayData' => $displayData,
+    'pageData' => $pageData
 ];
 
 echo $twig->render('head.twig', $variables);
