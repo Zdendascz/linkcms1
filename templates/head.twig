@@ -2,10 +2,20 @@
 <html>
 <head>
     <title>{{ pageData.categoryInfo.title }}</title>
+    <meta
 </head>
 <body>
     <h1>{{ pageData.categoryInfo.title }}</h1>
-    {{ navigation|raw }}
+    <navigation>{{ navigation|raw }}</navigation>
+    <content>
+    <ul>
+    {% for item in displayData %}
+        <li>Název: {{ item.title }}, Snippet: {{ item.snippet }}</li>
+    {% endfor %}
+</ul>
+
+    </content>
 
 </body>
 </html>
+
