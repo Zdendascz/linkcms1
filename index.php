@@ -19,12 +19,16 @@ Debugger::enable(Debugger::DEVELOPMENT);
 
 // Vytvoření loggeru
 $logger = new Logger('linkcms');
-// Nastavení rotačního handleru pro logování úrovní DEBUG, NOTICE a INFO
-$debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug_info.log', 0, Logger::INFO);
+// Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
+$debugHandler = new RotatingFileHandler(__DIR__.'/logs/info.log', 0, Logger::INFO);
 $logger->pushHandler($debugHandler);
 
-// Nastavení rotačního handleru pro logování úrovně WARNING
-$warningHandler = new RotatingFileHandler(__DIR__.'/logs/warning.log', 0, Logger::WARNING);
+// nastavení rotačního handleru pro debug
+$debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug.log', 0, Logger::DEBUG);
+$logger->pushHandler($debugHandler);
+
+// Nastavení handleru pro logování úrovně WARNING do jednoho souboru
+$warningHandler = new StreamHandler(__DIR__.'/logs/warning.log', Logger::WARNING);
 $warningHandler->setFormatter(new LineFormatter(null, null, true, true));
 $logger->pushHandler($warningHandler);
 
@@ -71,6 +75,7 @@ $capsule->bootEloquent();
 //volání informací o doméně
 $domainInfo = new \linkcms1\domainControl($capsule, $logger);
 $domainInfo->loadDomain();
+
 
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     
@@ -137,7 +142,7 @@ switch ($routeInfo[0]) {
             // ... call $handler with $vars
             $urlInfo = $domainInfo->loadSite();
             
-            Tracy\Debugger::barDump($vars, 'Vars[-0]');
+            
             // ošetření problému s home
             if(empty($vars["string"])){
                 $vars["string"] = "/";
