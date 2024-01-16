@@ -24,7 +24,7 @@ $debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug_info.log', 0, Logge
 $logger->pushHandler($debugHandler);
 
 // Nastavení rotačního handleru pro logování úrovně WARNING
-$warningHandler = new RotatingFileHandler(__DIR__.'/logs/warning.log', 0, Logger::WARNING, false, true);
+$warningHandler = new RotatingFileHandler(__DIR__.'/logs/warning.log', 0, Logger::WARNING);
 $warningHandler->setFormatter(new LineFormatter(null, null, true, true));
 $logger->pushHandler($warningHandler);
 
@@ -74,21 +74,21 @@ $domainInfo->loadDomain();
 
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
     
-    // $r->addRoute('GET', '/users', function() use ($capsule) {
-    //     $user = new User($capsule);
-    //     $user->get_all_users();
-    // });
-    // $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
-    //     $user = new User($capsule);
-    //     $user->get_user($id);
-    // });
+    $r->addRoute('GET', '/users', function() use ($capsule) {
+        $user = new User($capsule);
+        $user->get_all_users();
+    });
+    $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
+        $user = new User($capsule);
+        $user->get_user($id);
+    });
 
     $r->addGroup('/admin', function (RouteCollector $r) {
         $r->addRoute('GET', '/do-something', 'handler');
         $r->addRoute('GET', '/do-another-thing', 'handler');
         $r->addRoute('GET', '/do-something-else', 'handler');
     });
-    $r->addRoute('GET', '/', function($string = "") {
+    $r->addRoute('GET', '', function($string = "") {
     });
     $r->addRoute('GET', '/{string:.+}', function($string) {
     });
@@ -97,7 +97,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
 // Fetch method and URI from somewhere
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
-
+Tracy\Debugger::barDump($_SERVER, 'SERV');
 // Získání URI a odstranění base path
 $uri = $_SERVER['REQUEST_URI'];
 if (substr($uri, 0, strlen($_SERVER['BASE_PATH'])) == $_SERVER['BASE_PATH']) {
@@ -134,7 +134,7 @@ switch ($routeInfo[0]) {
             $vars = $routeInfo[2];
             // ... call $handler with $vars
             $urlInfo = $domainInfo->loadSite();
-            Tracy\Debugger::barDump($urlInfo, 'Url info');
+            
             Tracy\Debugger::barDump($vars, 'Vars[-0]');
             // ošetření problému s home
             if(empty($vars["string"])){

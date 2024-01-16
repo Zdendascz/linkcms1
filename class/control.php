@@ -31,7 +31,7 @@ class domainControl {
         
                 // Přidání hodnoty do $_SERVER s prefixem 'SITE_'
                 $_SERVER['SITE_' . strtoupper($key)] = $value;
-            }
+            } 
         }
         else{
             $this->logger->error('Nepodařilo se načíst data domény '.$_SERVER['HTTP_HOST']);
@@ -52,6 +52,7 @@ class domainControl {
         $url = Url::where('domain', '=', $_SERVER['SITE_DOMAIN'])
                 ->where('url', '=', $path)
                 ->first();
+                
                  
     
         // Kontrola, zda byl záznam nalezen
