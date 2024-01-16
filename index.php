@@ -15,9 +15,11 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
 
+//******************** aktivace debuggeru
 Debugger::enable(Debugger::DEVELOPMENT);
+//Debugger::enable(Debugger::PRODUCTION);
 
-// Vytvoření loggeru
+//******************** Vytvoření loggeru
 $logger = new Logger('linkcms');
 // Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
 $debugHandler = new RotatingFileHandler(__DIR__.'/logs/info.log', 0, Logger::INFO);
@@ -36,7 +38,7 @@ $logger->pushHandler($warningHandler);
 $errorHandler = new StreamHandler(__DIR__.'/logs/error.log', Logger::ERROR);
 $logger->pushHandler($errorHandler);
 
-// Funkce pro načtení konfiguračních souborů
+//******************** Funkce pro načtení konfiguračních souborů
 function loadConfiguration($logger) {
     $envPath = __DIR__; // Nastavte cestu ke složce, kde se nachází .env soubory
     $dotenv = Dotenv::createImmutable($envPath, ['.env_local', '.env']);
@@ -50,11 +52,12 @@ function loadConfiguration($logger) {
     }
 }
 
-// Načtení konfigurace
+//******************** Načtení konfigurace
 loadConfiguration($logger);
 
-$capsule = new Capsule;
 
+//******************** připojení k db
+$capsule = new Capsule;
 $capsule->addConnection([
     'driver'    => $_SERVER['DB_DRIVER'],
     'host'      => $_SERVER['DB_HOST'],
@@ -68,31 +71,16 @@ $capsule->addConnection([
 
 // Nastavení Eloquentu pro globální použití (volitelné)
 $capsule->setAsGlobal();
-
 // Spuštění Eloquentu
 $capsule->bootEloquent();
 
-//volání informací o doméně
+
+//******************** volání informací o doméně
 $domainInfo = new \linkcms1\domainControl($capsule, $logger);
 $domainInfo->loadDomain();
 
-
-$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {
-    
-    $r->addRoute('GET', '/users', function() use ($capsule) {
-        $user = new User($capsule);
-        $user->get_all_users();
-    });
-    $r->addRoute('GET', '/user/{id:\d+}', function($id) use ($capsule) {
-        $user = new User($capsule);
-        $user->get_user($id);
-    });
-
-    $r->addGroup('/admin', function (RouteCollector $r) {
-        $r->addRoute('GET', '/do-something', 'handler');
-        $r->addRoute('GET', '/do-another-thing', 'handler');
-        $r->addRoute('GET', '/do-something-else', 'handler');
-    });
+//******************** routování cesty
+$dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {    
     $r->addRoute('GET', '', function($string = "") {
     });
     $r->addRoute('GET', '/', function($string = "") {
@@ -101,23 +89,24 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
 });
 
-// Fetch method and URI from somewhere
+//******************** Fetch method and URI from somewhere
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
-Tracy\Debugger::barDump($_SERVER, 'SERV');
-// Získání URI a odstranění base path
+Tracy\Debugger::barDump($_SERVER, 'SEVER data');
+
+//******************** Získání URI a odstranění base path
 $uri = $_SERVER['REQUEST_URI'];
 if (substr($uri, 0, strlen($_SERVER['BASE_PATH'])) == $_SERVER['BASE_PATH']) {
     $uri = substr($uri, strlen($_SERVER['BASE_PATH']));
 }
-// Strip query string (?foo=bar) and decode URI
+//******************** Strip query string (?foo=bar) and decode URI
 if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
 }
 $uri = rawurldecode($uri);
-
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
+//******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
     "articles" => "linkcms1\Models\Category",
     "get_all_users" => "linkcms1\Models\User",
@@ -125,11 +114,12 @@ $handlers = [
     "articleDetail" => "linkcms1\Models\Category"];
     Tracy\Debugger::barDump($routeInfo, 'Route info');
 
+//******************** zpracování routeru    
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
         // ... 404 Not Found
         Tracy\Debugger::barDump($routeInfo[0], 'Stránka nebyla nalezena');        
-        //$logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
+        $logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
         break;
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
         $allowedMethods = $routeInfo[1];
@@ -139,14 +129,13 @@ switch ($routeInfo[0]) {
         case FastRoute\Dispatcher::FOUND:
             $handler = $routeInfo[1];
             $vars = $routeInfo[2];
-            // ... call $handler with $vars
-            $urlInfo = $domainInfo->loadSite();
-            
+            $urlInfo = $domainInfo->loadSite();            
             
             // ošetření problému s home
             if(empty($vars["string"])){
                 $vars["string"] = "/";
             }
+
             $vars = array_merge($vars, $urlInfo);
             $vars = array_values($vars);
             Tracy\Debugger::barDump($vars, 'Vars');
