@@ -52,7 +52,6 @@ class domainControl {
         $url = Url::where('domain', '=', $_SERVER['SITE_DOMAIN'])
                 ->where('url', '=', $path)
                 ->first();
-
                  
     
         // Kontrola, zda byl záznam nalezen
@@ -70,10 +69,6 @@ class domainControl {
         //echo $_SERVER['SITE_DOMAIN'].'<pre>' . print_r($url, true) . '</pre>'.'<pre>' . print_r($_SERVER, true) . '</pre>';
 
         return $url->toArray();
-    }
-
-    public static function get_home(){
-
     }
 
 }

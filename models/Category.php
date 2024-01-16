@@ -190,6 +190,10 @@ class Category extends Model
             'pathInfo' => $pathInfo
         ];
     }
+
+    public function categories(){
+
+    }
     // Další metody a logika pro model mohou být zde
 }
 ?>

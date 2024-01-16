@@ -88,12 +88,9 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
         $r->addRoute('GET', '/do-another-thing', 'handler');
         $r->addRoute('GET', '/do-something-else', 'handler');
     });
+    $r->addRoute('GET', '/', function($string = "") {
+    });
     $r->addRoute('GET', '/{string:.+}', function($string) {
-        // Tady můžete zpracovat $retezec
-        // Zpracování GET parametrů
-        // foreach ($_GET as $key => $value) {
-        //     echo "<br>GET parametr: $key, Hodnota: $value";
-        // }
     });
 });
 
@@ -119,7 +116,7 @@ $handlers = [
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category"];
-    //Tracy\Debugger::barDump($routeInfo, 'Route info');
+    Tracy\Debugger::barDump($routeInfo, 'Route info');
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
@@ -137,10 +134,16 @@ switch ($routeInfo[0]) {
             $vars = $routeInfo[2];
             // ... call $handler with $vars
             $urlInfo = $domainInfo->loadSite();
+            Tracy\Debugger::barDump($urlInfo, 'Url info');
+            Tracy\Debugger::barDump($vars, 'Vars[-0]');
+            // ošetření problému s home
+            if(empty($vars["string"])){
+                $vars["string"] = "/";
+            }
             $vars = array_merge($vars, $urlInfo);
             $vars = array_values($vars);
-            $methodName = $vars[4];
             Tracy\Debugger::barDump($vars, 'Vars');
+            $methodName = $vars[4];
             $instance = new $handlers[$methodName]();
             Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
             $displayData = call_user_func_array([$instance, $methodName], array($vars[6]));
