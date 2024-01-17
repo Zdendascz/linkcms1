@@ -42,6 +42,12 @@ class domainControl {
         
                 // Přidání hodnoty do $_SERVER s prefixem 'SITE_'
                 $_SERVER['SITE_' . strtoupper($key)] = $value;
+                
+                // Kontrola, zda je hodnota pole a převod na řetězec
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                }
+
                 $domainInfo .= $key."=".$value;
             }
             $this->logger->debug('Načtení informací o doméně '.$_SERVER['HTTP_HOST']." >>> ".$domainInfo); 
