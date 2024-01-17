@@ -169,10 +169,17 @@ switch ($routeInfo[0]) {
             break;
 }
 
+foreach($_SERVER as $key => $value){
+    if(strpos($key, "SITE_") !== false){
+        $domainData[$key] = $value;
+    }
+}
+
 $variables = [
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null),
     'displayData' => $displayData,
-    'pageData' => $pageData
+    'pageData' => $pageData,
+    'domainData' => $domainData
 ];
 Tracy\Debugger::barDump($urlInfo, 'Url info');
 
