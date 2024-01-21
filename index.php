@@ -1,6 +1,7 @@
 <?php
 require 'vendor/autoload.php';
 require 'class/control.php';
+require 'class/admin.php';
 
 use FastRoute\RouteCollector;
 use function FastRoute\simpleDispatcher;
@@ -14,6 +15,10 @@ use Dotenv\Exception\InvalidPathException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
+use PHPAuth\Config as PHPAuthConfig;
+use PHPAuth\Auth as PHPAuth;
+use linkcms1\adminControl;
+
 
 //******************** aktivace debuggeru
 Debugger::enable(Debugger::DEVELOPMENT);
@@ -74,6 +79,16 @@ $capsule->setAsGlobal();
 // Spuštění Eloquentu
 $capsule->bootEloquent();
 
+//******************** Vytvoření nové PDO instance pro PHPAuth
+$dbh = new PDO(
+    'mysql:host=' . $_SERVER['DB_HOST'] . ';dbname=' . $_SERVER['DB_NAME'],
+    $_SERVER['DB_USER'],
+    $_SERVER['DB_PASSWORD'],
+    array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'") // Nastavení kódování, pokud je potřeba
+);
+// Vytvoření objektů pro PHPAuth
+$config = new PHPAuthConfig($dbh);
+$auth = new PHPAuth($dbh, $config);
 
 //******************** volání informací o doméně
 $domainInfo = new \linkcms1\domainControl($capsule, $logger);
@@ -106,12 +121,15 @@ if (false !== $pos = strpos($uri, '?')) {
 $uri = rawurldecode($uri);
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
+$admin = new linkcms1\adminControl($capsule,$logger,$auth);
+
 //******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
     "articles" => "linkcms1\Models\Category",
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
-    "articleDetail" => "linkcms1\Models\Category"];
+    "articleDetail" => "linkcms1\Models\Category",
+    "admin" => array("linkcms1\adminControl",array($capsule,$logger,$auth))];
     Tracy\Debugger::barDump($routeInfo, 'Route info');
 
 //******************** zpracování routeru    
@@ -140,9 +158,23 @@ switch ($routeInfo[0]) {
             $vars = array_values($vars);
             Tracy\Debugger::barDump($vars, 'Vars');
             $methodName = $vars[4];
-            $instance = new $handlers[$methodName]();
+
+            // Kontrola, zda je handler třída nebo pole s argumenty
+            if (is_array($handlers[$methodName])) {
+                // Vytvoření instance třídy s argumenty
+                $className = $handlers[$methodName][0];
+                $args = $handlers[$methodName][1];
+                $reflectionClass = new ReflectionClass($className);
+                $instance = $reflectionClass->newInstanceArgs($args);
+            } else {
+                // Vytvoření instance třídy bez argumentů
+                $className = $handlers[$methodName];
+                $instance = new $className();
+            }
+
             Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
             $displayData = call_user_func_array([$instance, $methodName], array($vars[6]));
+
             
             // Převod výsledků na pole, pokud jsou vráceny jako Eloquent Collection
             if ($displayData instanceof Illuminate\Database\Eloquent\Collection) {
