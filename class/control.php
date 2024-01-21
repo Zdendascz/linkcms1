@@ -73,9 +73,15 @@ class domainControl {
         $path = str_replace('https://' . $_SERVER['SITE_DOMAIN'], '', $path);
 
         // Vyhledání URL v databázi, která odpovídá jak doméně, tak cestě
-        $url = Url::where('domain', '=', $_SERVER['SITE_DOMAIN'])
-                ->where('url', '=', $path)
-                ->first();                
+        $siteDomain = $_SERVER['SITE_DOMAIN']; // Uložení hodnoty do lokální proměnné
+
+        $url = Url::where(function ($query) use ($siteDomain, $path) {
+            $query->where('domain', '=', $siteDomain)
+                  ->orWhere('domain', '=', '*');
+        })
+        ->where('url', '=', $path)
+        ->first();
+                
         $this->logger->debug('Načtení informací o url ze SQL [domain:'.$_SERVER['SITE_DOMAIN']." path:".$path."]");         
     
         // Kontrola, zda byl záznam nalezen
