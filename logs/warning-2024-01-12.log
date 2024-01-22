@@ -1,5 +1,0 @@
-[2024-01-12T11:30:43.219595+01:00] linkcms.WARNING: Požadovaná stránka /reseni nebyla nalezena s metodou GET  
-[2024-01-12T12:06:26.874098+01:00] linkcms.WARNING: Požadovaná stránka /users/ nebyla nalezena s metodou GET  
-[2024-01-12T12:25:45.940728+01:00] linkcms.WARNING: Adresa localhost//linkcms1/users nenalezena  
-[2024-01-12T12:34:22.179472+01:00] linkcms.WARNING: Adresa localhost/linkcms1/users nenalezena  
-[2024-01-12T12:35:13.686504+01:00] linkcms.WARNING: Adresa localhost/linkcms1/users nenalezena  
