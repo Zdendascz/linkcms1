@@ -150,7 +150,10 @@ switch ($routeInfo[0]) {
         case FastRoute\Dispatcher::FOUND:
             $handler = $routeInfo[1];
             $vars = $routeInfo[2];
-            $urlInfo = $domainInfo->loadSite();            
+            $urlInfo = $domainInfo->loadSite(); 
+            
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+            $_SERVER["SITE_WEB"] = $protocol.$urlInfo["domain"].$_SERVER["BASE_PATH"];
             
             // ošetření problému s home
             if(empty($vars["string"])){
@@ -221,11 +224,14 @@ switch ($routeInfo[0]) {
             break;
 }
 
+
 foreach($_SERVER as $key => $value){
     if(strpos($key, "SITE_") !== false){
         $domainData[$key] = $value;
     }
 }
+
+
 
 $variables = [
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null), // zobrazení navigace
@@ -238,7 +244,8 @@ Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
 
 Tracy\Debugger::barDump($urlInfo, 'Url info');
-echo $templateDir.$renderPage;
+
+Tracy\Debugger::barDump($templateDir.$renderPage, 'Template');
 $loader = new \Twig\Loader\FilesystemLoader($templateDir);
 $twig = new \Twig\Environment($loader, [
     //'cache' => '/templates/cache',

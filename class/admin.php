@@ -180,11 +180,11 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
-            header('Location: /');
+            header('Location: '.$_SERVER["SITE_WEB"]);
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
-            header('Location: /error?error=' . urlencode($loginResult['message']));
+            header('Location: '.$_SERVER["SITE_WEB"].'/error?error=' . urlencode($loginResult['message']));
         }
         exit;
     }
