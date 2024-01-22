@@ -133,6 +133,7 @@ $handlers = [
     "articleDetail" => "linkcms1\Models\Category",
     "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
+    "logoutUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
     "registerUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
 
 //******************** zpracování routeru    

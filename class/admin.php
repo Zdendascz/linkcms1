@@ -100,7 +100,7 @@ class adminControl {
         if ($result) {
             $this->logger->info("Uživatel byl úspěšně odhlášen.");
             // Zde můžete přidat další akce po úspěšném odhlášení, jako je přesměrování
-            return true;
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
         } else {
             $this->logger->warning("Nastal problém při odhlášení uživatele.");
             // Zde můžete zpracovat chybu odhlášení
@@ -180,7 +180,7 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
-            header('Location: '.$_SERVER["SITE_WEB"]);
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
