@@ -6,10 +6,11 @@
 </head>
 <body>
     <h1>{{ pageData.categoryInfo.title }}</h1>
+    
     {% if userData.email %}
     Uživatel: {{ userData.email }}
 {% else %}
-    {% include 'inc/logForm.twig' %}
+    {% include 'forms/logForm.twig' %}
    
 {% endif %}
     <navigation>{{ navigation|raw }}</navigation>
