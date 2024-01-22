@@ -8,6 +8,7 @@ use linkcms1\Models\Category;
 use Monolog\Logger;
 use Tracy\Debugger;
 use PHPAuth\Auth as PHPAuth;
+use linkcms1\Models\UserDetails;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 /**
@@ -115,39 +116,56 @@ class adminControl {
      * @param  mixed $repeatpassword
      * @return void
      */
-    public function registerUser($email, $password, $repeatpassword) {
+    public function registerUser() {
+        $postData = $_POST;
+        $loginResult = [];
+        // Extrahování údajů z $postData
+        $email = $postData['email'] ?? '';
+        $password = $postData['password'] ?? '';
+        $repeatpassword = $postData['repeat_password'] ?? '';
+        $fullname = $postData['fullname'] ?? '';
+        // ... (extrakce ostatních polí) ...
+
         // Ověření platnosti e-mailu
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->logger->warning("Neplatný formát e-mailu: $email");
+            $loginResult['message'] = "Neplatný formát e-mailu: $email";
             return false;
         }
-    
+
         // Kontrola shody hesel
         if ($password !== $repeatpassword) {
-            $this->logger->warning("Hesla se neshodují pro e-mail: $email");
+            $loginResult['message'] = "Hesla se neshodují pro e-mail: $email";
             return false;
         }
-    
-        // Kontrola silného hesla (například minimální délka, obsahuje číslice, velká a malá písmena, speciální znaky)
-        // Tuto logiku je třeba přizpůsobit vašim bezpečnostním požadavkům
-        if (!preg_match('/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/', $password)) {
-            $this->logger->warning("Heslo nesplňuje bezpečnostní požadavky pro e-mail: $email");
+
+        // Kontrola silného hesla
+        if (!preg_match('/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/', $password)) {
+            $loginResult['message'] = "Hesla se neshodují pro e-mail: $email";
             return false;
         }
-    
-        // Další možná bezpečnostní opatření: Captcha pro prevenci automatických registrací
-    
+
         // Pokus o registraci uživatele
         $result = $this->auth->register($email, $password, $repeatpassword);
-    
+
         if ($result['error']) {
+            // Registrace selhala
             $this->logger->warning("Registrace uživatele selhala: " . $result['message']);
-            return false;
+            header('Location: /registration?error=' . urlencode($loginResult['message']));
         } else {
-            $this->logger->info("Uživatel byl úspěšně zaregistrován: $email");
-            return true;
+            // Registrace byla úspěšná
+            $userId = $result['uid'];
+            $this->logger->info("Uživatel byl úspěšně zaregistrován: $email id: $userId");
+            // Uložení dodatečných informací do tabulky user_details
+            $userDetails = new UserDetails();
+            $userDetails->user_id = $userId;
+            $userDetails->fullname = $fullname;
+            // ... (nastavení ostatních polí) ...
+            $userDetails->save();
+
+            header('Location: /');
         }
     }
+    
     
     /**
      * loginHandler Přihlašovací handler

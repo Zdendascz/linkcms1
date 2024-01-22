@@ -102,8 +102,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     $r->addRoute('GET', '/', function($string = "") {
     });
     $r->addRoute('POST', '/doLogin', 'loginHandler');
-    $r->addRoute('GET', '/{string:.+}', function($string) {
-    });
+    $r->addRoute('GET', '/{string:.+}', function($string) {});
+    $r->addRoute('POST', '/{string:.+}', function($string) {});
 });
 
 //******************** Fetch method and URI from somewhere
@@ -132,7 +132,8 @@ $handlers = [
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
     "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
-    "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
+    "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
+    "registerUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
 
 //******************** zpracování routeru    
 switch ($routeInfo[0]) {
@@ -188,7 +189,7 @@ switch ($routeInfo[0]) {
             if ($displayData instanceof Illuminate\Database\Eloquent\Collection) {
                 $displayData = $displayData->toArray();
             }
-            Tracy\Debugger::barDump($displayData, 'Proměmné obsahu');
+            Tracy\Debugger::barDump($displayData, 'Display data');
             Tracy\Debugger::barDump($vars[5], 'Hodnota pro switch šablon');
             
             $templateDir = $_SERVER["SITE_TEMPLATE_DIR"];
@@ -210,13 +211,10 @@ switch ($routeInfo[0]) {
                     $renderPage = "article.twig";
                     break;
                 }
-                case 'articles' : {
-                    $pageData = $instance->getCategoryInfo($vars[6]);
-                    $renderPage = "article.twig";
-                    break;
-                }
                 default : {
-                    $renderPage = "index.twig";
+                    $renderPage = $vars[5].".twig";
+                    $category = new linkcms1\Models\Category;
+                    $pageData = $category->getCategoryInfo($vars[6]);
                     break;
                 }
             }
@@ -236,6 +234,9 @@ $variables = [
     'domainData' => $domainData, //data o doméně
     'userData' => $admin->getUserData()
 ];
+Tracy\Debugger::barDump($domainData, 'Domain data');
+Tracy\Debugger::barDump($pageData, 'Page data');
+
 Tracy\Debugger::barDump($urlInfo, 'Url info');
 echo $templateDir.$renderPage;
 $loader = new \Twig\Loader\FilesystemLoader($templateDir);
@@ -245,6 +246,4 @@ $twig = new \Twig\Environment($loader, [
 ]);
 
 echo $twig->render($renderPage, $variables);
-
-Tracy\Debugger::barDump($_SERVER, 'Server info');
 ?>
