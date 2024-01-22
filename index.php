@@ -123,7 +123,11 @@ if (false !== $pos = strpos($uri, '?')) {
 $uri = rawurldecode($uri);
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
-$admin = new linkcms1\adminControl($capsule,$logger,$auth);
+$admin = new linkcms1\adminControl($capsule, $logger, $auth);
+$userId = $auth->getCurrentUID();
+$userRoles = $admin->getUserRoles($userId)->toArray();
+Tracy\Debugger::barDump($userRoles, 'Role uživatele');
+
 
 //******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
@@ -232,17 +236,23 @@ foreach($_SERVER as $key => $value){
     }
 }
 
+//definice obecných oprávnění
+$premissions = [
+    'adminPanel' => $admin->hasPermission($userId,"administration",$domainData["SITE_ID"])
 
+];
 
 $variables = [
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null), // zobrazení navigace
     'displayData' => $displayData, // data obsahu stránky
     'pageData' => $pageData, // informace o konkrétní stránce
     'domainData' => $domainData, //data o doméně
-    'userData' => $admin->getUserData()
+    'userData' => $admin->getUserData(),
+    'premissions' => $premissions
 ];
 Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
+Tracy\Debugger::barDump($admin->getUserData(), 'User data');
 
 Tracy\Debugger::barDump($urlInfo, 'Url info');
 

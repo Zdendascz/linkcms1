@@ -188,6 +188,75 @@ class adminControl {
         }
         exit;
     }
+
+    /**
+     * Získá všechny role daného uživatele.
+     * 
+     * @param int $userId ID uživatele.
+     * @return Collection Kolekce všech rolí uživatele.
+     */
+    public function getUserRoles($userId) {
+        return $this->capsule::table('user_site_roles')
+                            ->join('roles', 'user_site_roles.role_id', '=', 'roles.id')
+                            ->where('user_site_roles.user_id', $userId)
+                            ->pluck('roles.name');
+    }
+
+    /**
+     * Ověří, zda je uživatel vlastníkem konkrétní role nebo je superadmin.
+     * 
+     * @param int $userId ID uživatele.
+     * @param string $roleName Název role.
+     * @param int $siteId ID webu (site).
+     * @return bool Vrací true, pokud uživatel má roli nebo je superadmin, jinak false.
+     */
+    public function isUserInRole($userId, $roleName, $siteId) {
+        $roles = $this->getUserRoles($userId);
+
+        // Vždy vrací true, pokud je uživatel superadmin
+        if ($roles->contains('superadmin')) {
+            return true;
+        }
+
+        // Kontrola, zda má uživatel specifickou roli pro daný web
+        return $this->capsule::table('user_site_roles')
+                            ->join('roles', 'user_site_roles.role_id', '=', 'roles.id')
+                            ->where('user_site_roles.user_id', $userId)
+                            ->where('user_site_roles.site_id', $siteId)
+                            ->where('roles.name', $roleName)
+                            ->exists();
+    }
+
+    /**
+     * Ověří, zda má uživatel specifické oprávnění na dané site.
+     * 
+     * @param int $userId ID uživatele.
+     * @param string $permissionName Název oprávnění.
+     * @param int $siteId ID webu (site).
+     * @return bool Vrací true, pokud má uživatel oprávnění, nebo je superadmin, jinak false.
+     */
+    public function hasPermission($userId, $permissionName, $siteId) {
+        $roles = $this->getUserRoles($userId);
+
+        // Vrací true, pokud je uživatel superadmin
+        if ($roles->contains('superadmin')) {
+            return true;
+        }
+
+        // Získá ID rolí pro danou site
+        $roleIds = $this->capsule::table('user_site_roles')
+                                ->where('user_id', $userId)
+                                ->where('site_id', $siteId)
+                                ->pluck('role_id');
+
+        // Ověřuje, zda některá z rolí uživatele má požadované oprávnění
+        return $this->capsule::table('role_permissions')
+                            ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
+                            ->whereIn('role_permissions.role_id', $roleIds)
+                            ->where('permissions.name', $permissionName)
+                            ->exists();
+}
+
     
 }
 
