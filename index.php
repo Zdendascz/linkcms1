@@ -18,6 +18,7 @@ use linkcms1\Models\Category;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
+use linkcms1\Models\UserDetails;
 
 
 //******************** aktivace debuggeru
@@ -100,6 +101,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     });
     $r->addRoute('GET', '/', function($string = "") {
     });
+    $r->addRoute('POST', '/doLogin', 'loginHandler');
     $r->addRoute('GET', '/{string:.+}', function($string) {
     });
 });
@@ -129,8 +131,8 @@ $handlers = [
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
-    "admin" => array("linkcms1\adminControl",array($capsule,$logger,$auth))];
-    Tracy\Debugger::barDump($routeInfo, 'Route info');
+    "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
+    "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
 
 //******************** zpracování routeru    
 switch ($routeInfo[0]) {
@@ -159,17 +161,23 @@ switch ($routeInfo[0]) {
             Tracy\Debugger::barDump($vars, 'Vars');
             $methodName = $vars[4];
 
-            // Kontrola, zda je handler třída nebo pole s argumenty
-            if (is_array($handlers[$methodName])) {
-                // Vytvoření instance třídy s argumenty
-                $className = $handlers[$methodName][0];
-                $args = $handlers[$methodName][1];
-                $reflectionClass = new ReflectionClass($className);
-                $instance = $reflectionClass->newInstanceArgs($args);
+            // Kontrola existence handleru v poli $handlers
+            if (array_key_exists($methodName, $handlers)) {
+                if (is_array($handlers[$methodName])) {
+                    // Vytvoření instance třídy s argumenty
+                    $className = $handlers[$methodName][0];
+                    $args = $handlers[$methodName][1];
+                    $reflectionClass = new ReflectionClass($className);
+                    $instance = $reflectionClass->newInstanceArgs($args);
+                } else {
+                    // Vytvoření instance třídy bez argumentů
+                    $className = $handlers[$methodName];
+                    $instance = new $className();
+                }
             } else {
-                // Vytvoření instance třídy bez argumentů
-                $className = $handlers[$methodName];
-                $instance = new $className();
+                // Handler není definován v $handlers
+                Tracy\Debugger::barDump("Handler '" . $methodName . "' je databázi, ale není v poli hadlerů");
+                // Zde můžete přidat další kód pro zpracování této situace
             }
 
             Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
@@ -181,11 +189,25 @@ switch ($routeInfo[0]) {
                 $displayData = $displayData->toArray();
             }
             Tracy\Debugger::barDump($displayData, 'Proměmné obsahu');
+            Tracy\Debugger::barDump($vars[5], 'Hodnota pro switch šablon');
             
+            $templateDir = $_SERVER["SITE_TEMPLATE_DIR"];
+
             switch($vars[5]){
                 case 'categories' : {
                     $pageData = $instance->getCategoryInfo($vars[6]);
                     $renderPage = "category.twig";
+                    break;
+                }
+                case 'admin' : {
+                    //$pageData = $instance->getCategoryInfo($vars[6]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "admin.twig";
+                    break;
+                }
+                case 'articles' : {
+                    $pageData = $instance->getCategoryInfo($vars[6]);
+                    $renderPage = "article.twig";
                     break;
                 }
                 case 'articles' : {
@@ -208,14 +230,15 @@ foreach($_SERVER as $key => $value){
 }
 
 $variables = [
-    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null),
-    'displayData' => $displayData,
-    'pageData' => $pageData,
-    'domainData' => $domainData
+    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null), // zobrazení navigace
+    'displayData' => $displayData, // data obsahu stránky
+    'pageData' => $pageData, // informace o konkrétní stránce
+    'domainData' => $domainData, //data o doméně
+    'userData' => $admin->getUserData()
 ];
 Tracy\Debugger::barDump($urlInfo, 'Url info');
-
-$loader = new \Twig\Loader\FilesystemLoader($_SERVER["SITE_TEMPLATE_DIR"]);
+echo $templateDir.$renderPage;
+$loader = new \Twig\Loader\FilesystemLoader($templateDir);
 $twig = new \Twig\Environment($loader, [
     //'cache' => '/templates/cache',
      'cache' => false, // Vypnout cache pro vývoj
