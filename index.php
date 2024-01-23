@@ -20,6 +20,7 @@ use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
 use linkcms1\Models\UserDetails;
 
+session_start();
 
 //******************** aktivace debuggeru
 Debugger::enable(Debugger::DEVELOPMENT);
@@ -135,6 +136,7 @@ if($auth->isLogged()){
     }
 } else {
     $userRoles = [];
+    $userId = null;
     Tracy\Debugger::barDump('Uživatel není přihlášen');
 }
 
