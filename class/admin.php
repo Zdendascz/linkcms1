@@ -124,6 +124,7 @@ class adminControl {
         $password = $postData['password'] ?? '';
         $repeatpassword = $postData['repeat_password'] ?? '';
         $fullname = $postData['fullname'] ?? '';
+        $phone = $postData['phone'] ?? '';
         // ... (extrakce ostatních polí) ...
 
         // Ověření platnosti e-mailu
@@ -150,7 +151,7 @@ class adminControl {
         if ($result['error']) {
             // Registrace selhala
             $this->logger->warning("Registrace uživatele selhala: " . $result['message']);
-            header('Location: /registration?error=' . urlencode($loginResult['message']));
+            header('Location: '.$_SERVER['SITE_WEB'].'/admin/login/sign-up.html?error=' . urlencode($loginResult['message']));
         } else {
             // Registrace byla úspěšná
             $userId = $result['uid'];
@@ -159,10 +160,11 @@ class adminControl {
             $userDetails = new UserDetails();
             $userDetails->user_id = $userId;
             $userDetails->fullname = $fullname;
+            $userDetails->phone = $phone;
             // ... (nastavení ostatních polí) ...
             $userDetails->save();
 
-            header('Location: /');
+            header('Location: '.$_SERVER['SITE_WEB'].'/admin/login/regFinal');
         }
     }
     

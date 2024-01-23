@@ -241,6 +241,22 @@ switch ($routeInfo[0]) {
                     $renderPage = "adminLogin.twig";
                     break;
                 }
+                case 'adminReg' : {
+                    if($admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/');
+                    }
+                    $templateDir = "templates/admin/";
+                    $renderPage = "adminReg.twig";
+                    break;
+                }
+                case 'adminRegSuccess' : {
+                    if($admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/');
+                    }
+                    $templateDir = "templates/admin/";
+                    $renderPage = "adminRegSuccess.twig";
+                    break;
+                }
                 case 'articles' : {
                     $pageData = $instance->getCategoryInfo($vars[6]);
                     $renderPage = "article.twig";
