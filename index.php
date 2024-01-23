@@ -1,4 +1,5 @@
 <?php
+session_start();
 require 'vendor/autoload.php';
 require 'class/control.php';
 require 'class/admin.php';
@@ -20,7 +21,7 @@ use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
 use linkcms1\Models\UserDetails;
 
-session_start();
+
 
 //******************** aktivace debuggeru
 Debugger::enable(Debugger::DEVELOPMENT);
