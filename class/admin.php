@@ -45,19 +45,17 @@ class adminControl {
         // Zde můžete přidat logiku pro kontrolu počtu neúspěšných pokusů
     
         $result = $this->auth->login($email, $password, $remember);
-        echo "<pre>".print_r($result)."</pre>";
-        echo "<pre>Is Logged: ".print_r($this->auth->isLogged())."</pre>";
-        die();
+    
         // Záznam pokusu o přihlášení
-        /*$this->logger->debug("Pokus o přihlášení pro uživatele: $email");
+        $this->logger->debug("Pokus o přihlášení pro uživatele: $email");
     
         if ($result['error']) {
             $this->logger->warning("Neúspěšný pokus o přihlášení pro uživatele: $email");
             return ['success' => false, 'message' => "Přihlášení selhalo: " . $result['message']];
         } else {
             $this->logger->debug("Uživatel: $email přihlášen");
-            return ['success' => true];
-        }*/
+            return ['success' => true, 'message' => "Uživatel byl úspěšně přihlášen"];
+        }
     }
        
         
@@ -185,11 +183,8 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
-            // $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán hedaer: ".$_SERVER['SITE_WEB']."/admin/");
-            // header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
-            //echo "výsledek přihlášení OK<br />";
-            //echo "<pre>".print_r($this->auth->isLogged())."</pre>";
-            echo "<pre>UID: ".print_r($this->auth->getCurrentUID())."</pre>";
+            $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán hedaer: ".$_SERVER['SITE_WEB']."/admin/");
+            header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
