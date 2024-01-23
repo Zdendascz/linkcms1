@@ -124,13 +124,15 @@ $uri = rawurldecode($uri);
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 $admin = new linkcms1\adminControl($capsule, $logger, $auth);
-$userId = $auth->getCurrentUID();
+if($auth->isLogged()){
+    $userId = $auth->getCurrentUID();
 
-// Kontrola, zda je uživatel přihlášen
-if ($userId) {
-    $rolesCollection = $admin->getUserRoles($userId);
-    $userRoles = $rolesCollection ? $rolesCollection->toArray() : [];
-    Tracy\Debugger::barDump('Přihlášený uživatel');
+    // Kontrola, zda je uživatel přihlášen
+    if ($userId) {
+        $rolesCollection = $admin->getUserRoles($userId);
+        $userRoles = $rolesCollection ? $rolesCollection->toArray() : [];
+        Tracy\Debugger::barDump('Přihlášený uživatel');
+    }
 } else {
     $userRoles = [];
     Tracy\Debugger::barDump('Uživatel není přihlášen');
