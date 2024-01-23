@@ -257,6 +257,14 @@ switch ($routeInfo[0]) {
                     $renderPage = "adminRegSuccess.twig";
                     break;
                 }
+                case 'adminError' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $templateDir = "templates/admin/";
+                    $renderPage = "error.twig";
+                    break;
+                }
                 case 'articles' : {
                     $pageData = $instance->getCategoryInfo($vars[6]);
                     $renderPage = "article.twig";
