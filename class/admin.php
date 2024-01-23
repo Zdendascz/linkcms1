@@ -266,6 +266,16 @@ class adminControl {
 
     }
 
+    public function getSitesWithUserRoles($userId) {
+        if (!$userId) { return []; }
+    
+        return $this->capsule::table('user_site_roles')
+                             ->join('sites', 'user_site_roles.site_id', '=', 'sites.id')
+                             ->where('user_site_roles.user_id', $userId)
+                             ->distinct()
+                             ->get(['sites.*']);
+    }
+
     
 }
 
