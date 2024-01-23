@@ -180,7 +180,7 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
-            header('Location: ' . $_SERVER['HTTP_REFERER']);
+            header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
@@ -196,6 +196,7 @@ class adminControl {
      * @return Collection Kolekce všech rolí uživatele.
      */
     public function getUserRoles($userId) {
+        if(!$userId){ return false;}
         return $this->capsule::table('user_site_roles')
                             ->join('roles', 'user_site_roles.role_id', '=', 'roles.id')
                             ->where('user_site_roles.user_id', $userId)
@@ -211,6 +212,7 @@ class adminControl {
      * @return bool Vrací true, pokud uživatel má roli nebo je superadmin, jinak false.
      */
     public function isUserInRole($userId, $roleName, $siteId) {
+        if(!$userId){ return false;}
         $roles = $this->getUserRoles($userId);
 
         // Vždy vrací true, pokud je uživatel superadmin
@@ -236,6 +238,7 @@ class adminControl {
      * @return bool Vrací true, pokud má uživatel oprávnění, nebo je superadmin, jinak false.
      */
     public function hasPermission($userId, $permissionName, $siteId) {
+        if(!$userId){ return false;}
         $roles = $this->getUserRoles($userId);
 
         // Vrací true, pokud je uživatel superadmin
@@ -255,7 +258,11 @@ class adminControl {
                             ->whereIn('role_permissions.role_id', $roleIds)
                             ->where('permissions.name', $permissionName)
                             ->exists();
-}
+    }
+
+    public function getAdministration(){
+
+    }
 
     
 }

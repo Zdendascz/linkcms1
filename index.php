@@ -125,9 +125,22 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 $admin = new linkcms1\adminControl($capsule, $logger, $auth);
 $userId = $auth->getCurrentUID();
-$userRoles = $admin->getUserRoles($userId)->toArray();
+
+// Kontrola, zda je uživatel přihlášen
+if ($userId) {
+    $rolesCollection = $admin->getUserRoles($userId);
+    $userRoles = $rolesCollection ? $rolesCollection->toArray() : [];
+} else {
+    $userRoles = [];
+}
+
 Tracy\Debugger::barDump($userRoles, 'Role uživatele');
 
+foreach($_SERVER as $key => $value){
+    if(strpos($key, "SITE_") !== false){
+        $domainData[$key] = $value;
+    }
+}
 
 //******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
@@ -136,6 +149,7 @@ $handlers = [
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
     "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
+    "getAdministration" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
     "logoutUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
     "registerUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
@@ -158,7 +172,7 @@ switch ($routeInfo[0]) {
             $urlInfo = $domainInfo->loadSite(); 
             
             $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-            $_SERVER["SITE_WEB"] = $protocol.$urlInfo["domain"].$_SERVER["BASE_PATH"];
+            $domainData["SITE_WEB"] = $_SERVER["SITE_WEB"] = $protocol.$_SERVER["SITE_DOMAIN"].$_SERVER["BASE_PATH"];
             
             // ošetření problému s home
             if(empty($vars["string"])){
@@ -191,12 +205,14 @@ switch ($routeInfo[0]) {
 
             Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
             $displayData = call_user_func_array([$instance, $methodName], array($vars[6]));
+            
 
             
             // Převod výsledků na pole, pokud jsou vráceny jako Eloquent Collection
             if ($displayData instanceof Illuminate\Database\Eloquent\Collection) {
                 $displayData = $displayData->toArray();
             }
+
             Tracy\Debugger::barDump($displayData, 'Display data');
             Tracy\Debugger::barDump($vars[5], 'Hodnota pro switch šablon');
             
@@ -209,9 +225,20 @@ switch ($routeInfo[0]) {
                     break;
                 }
                 case 'admin' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
                     //$pageData = $instance->getCategoryInfo($vars[6]);
                     $templateDir = "templates/admin/";
                     $renderPage = "admin.twig";
+                    break;
+                }
+                case 'adminLogin' : {
+                    if($admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/');
+                    }
+                    $templateDir = "templates/admin/";
+                    $renderPage = "adminLogin.twig";
                     break;
                 }
                 case 'articles' : {
@@ -229,18 +256,13 @@ switch ($routeInfo[0]) {
             break;
 }
 
-
-foreach($_SERVER as $key => $value){
-    if(strpos($key, "SITE_") !== false){
-        $domainData[$key] = $value;
-    }
-}
-
 //definice obecných oprávnění
 $premissions = [
     'adminPanel' => $admin->hasPermission($userId,"administration",$domainData["SITE_ID"])
 
 ];
+
+if(!isset($pageData)){$pageData = "";}
 
 $variables = [
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null), // zobrazení navigace
@@ -248,7 +270,8 @@ $variables = [
     'pageData' => $pageData, // informace o konkrétní stránce
     'domainData' => $domainData, //data o doméně
     'userData' => $admin->getUserData(),
-    'premissions' => $premissions
+    'premissions' => $premissions,
+    'templateDir' => $templateDir
 ];
 Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
