@@ -183,12 +183,14 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
-            $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán heder");
-            header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
+            // $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán hedaer: ".$_SERVER['SITE_WEB']."/admin/");
+            // header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
+            echo "výsledek přihlášení OK<br />";
+            echo "<pre>".print_r($this->auth->isLogged())."</pre>";
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
-            $this->logger->debug("Pokus o přihlášení uživatele: $email nebyl úspěšný, loginHandler() přijal false");
+            $this->logger->debug("Pokus o přihlášení uživatele: $email nebyl úspěšný, loginHandler() přijal false, zpráva: ".$loginResult['message']);
             header('Location: '.$_SERVER["SITE_WEB"].'/admin/error/?error=' . urlencode($loginResult['message']));
         }
         exit;
