@@ -185,8 +185,9 @@ class adminControl {
             // Přesměrujte na stránku po úspěšném přihlášení
             // $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán hedaer: ".$_SERVER['SITE_WEB']."/admin/");
             // header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
-            echo "výsledek přihlášení OK<br />";
-            echo "<pre>".print_r($this->auth->isLogged())."</pre>";
+            //echo "výsledek přihlášení OK<br />";
+            //echo "<pre>".print_r($this->auth->isLogged())."</pre>";
+            echo "<pre>UID: ".print_r($this->auth->getCurrentUID())."</pre>";
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
