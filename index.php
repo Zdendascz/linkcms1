@@ -130,8 +130,10 @@ $userId = $auth->getCurrentUID();
 if ($userId) {
     $rolesCollection = $admin->getUserRoles($userId);
     $userRoles = $rolesCollection ? $rolesCollection->toArray() : [];
+    Tracy\Debugger::barDump('Přihlášený uživatel');
 } else {
     $userRoles = [];
+    Tracy\Debugger::barDump('Uživatel není přihlášen');
 }
 
 Tracy\Debugger::barDump($userRoles, 'Role uživatele');
@@ -285,7 +287,7 @@ $premissions = [
     'adminPanel' => $admin->hasPermission($userId,"administration",$domainData["SITE_ID"])
 
 ];
-
+Tracy\Debugger::barDump($premissions, 'Oprávnění data');
 if(!isset($pageData)){$pageData = "";}
 
 $variables = [
