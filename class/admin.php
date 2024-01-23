@@ -47,12 +47,13 @@ class adminControl {
         $result = $this->auth->login($email, $password, $remember);
     
         // Záznam pokusu o přihlášení
-        $this->logger->info("Pokus o přihlášení pro uživatele: $email");
+        $this->logger->debug("Pokus o přihlášení pro uživatele: $email");
     
         if ($result['error']) {
             $this->logger->warning("Neúspěšný pokus o přihlášení pro uživatele: $email");
             return ['success' => false, 'message' => "Přihlášení selhalo: " . $result['message']];
         } else {
+            $this->logger->debug("Uživatel: $email přihlášen");
             return ['success' => true, 'message' => "Uživatel byl úspěšně přihlášen"];
         }
     }
@@ -182,11 +183,13 @@ class adminControl {
     
         if ($loginResult['success']) {
             // Přesměrujte na stránku po úspěšném přihlášení
+            $this->logger->debug("Pokus o přihlášení uživatele: $email úspěšný, předán heder");
             header('Location: ' . $_SERVER['SITE_WEB'].'/admin/');
         } else {
             // Informujte uživatele o chybě a přesměrujte na přihlašovací stránku
             // Můžete použít session nebo GET parametry pro předání zprávy
-            header('Location: '.$_SERVER["SITE_WEB"].'/error?error=' . urlencode($loginResult['message']));
+            $this->logger->debug("Pokus o přihlášení uživatele: $email nebyl úspěšný, loginHandler() přijal false");
+            header('Location: '.$_SERVER["SITE_WEB"].'/admin/error/?error=' . urlencode($loginResult['message']));
         }
         exit;
     }
