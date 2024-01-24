@@ -136,8 +136,9 @@ class domainControl {
         return ['status' => true, 'error' => '']; // Žádná duplicita nenalezena
     }
     
+        
     /**
-     * createUrlIfNotDuplicate Funkce vytvoří novou url
+     * createUrlIfNotDuplicate
      *
      * @param  mixed $urlData
      * @return void
@@ -149,31 +150,49 @@ class domainControl {
         $handler = $urlData['handler'];
         $model = isset($urlData['model']) ? $urlData['model'] : null;
         $modelId = isset($urlData['model_id']) ? $urlData['model_id'] : null;
+        $id = isset($urlData['id']) ? $urlData['id'] : null; // ID pro rozpoznání nového vs. existujícího záznamu
     
-        // Použití funkce checkForDuplicates pro ověření duplicity
+        // Přidání lomítka na začátek URL, pokud tam není
+        if (substr($url, 0, 1) !== '/') {
+            $url = '/' . $url;
+        }
+    
+        // Odstranění lomítka z konce URL, pokud tam je
+        $url = rtrim($url, '/');
+    
+        // Kontrola duplicity
         $duplicationCheck = $this->checkForDuplicates($url, $domain, $model, $modelId);
     
         if ($duplicationCheck['status'] === false) {
             // Byla nalezena duplicita
-            return $duplicationCheck; // Vrací stejnou strukturu jako checkForDuplicates
+            return $duplicationCheck;
         }
     
-        // Pokud není duplicita, vložíme URL do databáze
         try {
-            $newUrl = new Url;
-            $newUrl->url = $url;
-            $newUrl->domain = $domain;
-            $newUrl->model = $model;
-            $newUrl->model_id = $modelId;
-            $newUrl->handler = $handler;
-            // ... přidejte další pole podle potřeby
-            $newUrl->save();
+            if ($id) {
+                // Aktualizace existujícího záznamu
+                $urlToUpdate = Url::find($id);
+                if (!$urlToUpdate) {
+                    return ['status' => false, 'error' => 'Záznam nenalezen pro aktualizaci'];
+                }
+            } else {
+                // Vytvoření nového záznamu
+                $urlToUpdate = new Url;
+            }
     
-            return ['status' => true, 'error' => '', 'message' => 'URL úspěšně vytvořena'];
+            // Nastavení hodnot
+            $urlToUpdate->url = $url;
+            $urlToUpdate->domain = $domain;
+            $urlToUpdate->model = $model;
+            $urlToUpdate->model_id = $modelId;
+            $urlToUpdate->handler = $handler;
+            $urlToUpdate->save();
+    
+            return ['status' => true, 'error' => '', 'message' => $id ? 'URL úspěšně aktualizována' : 'URL úspěšně vytvořena'];
         } catch (\Exception $e) {
-            // Chyba při vkládání do databáze
-            $this->logger->error('Chyba při vkládání URL do databáze: ' . $e->getMessage());
-            return ['status' => false, 'error' => 'Chyba při vkládání do databáze'];
+            // Chyba při vkládání nebo aktualizaci do databáze
+            $this->logger->error('Chyba při vkládání/aktualizaci URL do databáze: ' . $e->getMessage());
+            return ['status' => false, 'error' => 'Chyba při vkládání/aktualizaci do databáze'];
         }
     }
 
@@ -189,17 +208,17 @@ class domainControl {
             if ($result['status']) {
                 // Úspěch: URL byla vytvořena
                 // Přesměrování a nastavení statusu
-                header('Location: some-success-page.php?status=success&message=' . urlencode('URL úspěšně vytvořena'));
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=success&message=' . urlencode('URL úspěšně vytvořena'));
                 exit();
             } else {
                 // Neúspěch: Došlo k duplicitě nebo jiné chybě
                 // Přesměrování a nastavení statusu
-                header('Location: some-error-page.php?status=error&message=' . urlencode($result['error']));
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode($result['error']));
                 exit();
             }
         } else {
             // Pokud data nebyla odeslána metodou POST
-            header('Location: some-error-page.php?status=error&message=' . urlencode('Neplatný požadavek'));
+            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
             exit();
         }
     }
@@ -222,6 +241,41 @@ class domainControl {
 
         // Vrátí výsledky jako pole
         return $urls->toArray();
+    }
+
+    /**
+     * Načte všechny domény a jejich informace z databáze.
+     * Pokud je zadáno user ID, vrátí pouze domény spojené s tímto uživatelem.
+     * @param int|null $userId ID uživatele
+     * @return array Pole domén a jejich informací.
+     */
+    public function getAllDomainsWithInfo($userId = null) {
+        // Pokud je zadáno user ID, vrátí domény pro daného uživatele a seřadí je
+        if ($userId) {
+            $sites = Site::where('user_id', $userId)
+                        ->orderBy('domain', 'asc')
+                        ->get();
+        } else {
+            // Vrátí všechny domény seřazené abecedně
+            $sites = Site::orderBy('domain', 'asc')
+                        ->get();
+        }
+
+        $domainsInfo = [];
+
+        foreach ($sites as $site) {
+            $siteInfo = $site->toArray();
+            // Převod potenciálních JSON hodnot na pole
+            foreach ($siteInfo as $key => $value) {
+                if (is_string($value) && is_array(json_decode($value, true)) && json_last_error() === JSON_ERROR_NONE) {
+                    $siteInfo[$key] = json_decode($value, true);
+                }
+            }
+
+            $domainsInfo[] = $siteInfo;
+        }
+
+        return $domainsInfo;
     }
 
 }

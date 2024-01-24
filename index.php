@@ -156,6 +156,7 @@ $handlers = [
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
+    "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "getAdministration" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
@@ -245,7 +246,11 @@ switch ($routeInfo[0]) {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
-                    $pageData = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allDomains"] = $domainInfo->getAllDomainsWithInfo();
+                    $sitesData = new linkcms1\Models\Site();
+                    $pageData["allHandlers"] = $sitesData->getAllUniqueHandlers();
+                    $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
                     $templateDir = "templates/admin/";
                     $renderPage = "urls.twig";
                     break;

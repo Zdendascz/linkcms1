@@ -32,5 +32,23 @@ class Site extends Model
     {
         return $this->belongsTo(Tariff::class);
     }
+
+    /**
+ * Vrátí pole všech unikátních handlerů z tabulky urls, seřazených abecedně.
+ * @return array Pole unikátních handlerů.
+ */
+public function getAllUniqueHandlers() {
+    $handlers = Url::distinct()->orderBy('handler', 'asc')->pluck('handler')->toArray();
+    return $handlers;
+}
+
+/**
+ * Vrátí pole všech unikátních modelů z tabulky urls, seřazených abecedně.
+ * @return array Pole unikátních modelů.
+ */
+public function getAllUniqueModels() {
+    $models = Url::distinct()->orderBy('model', 'asc')->pluck('model')->toArray();
+    return $models;
+}
 }
 ?>
