@@ -95,6 +95,134 @@ class domainControl {
         }
         return $url->toArray();
     }
+    
+    /**
+     * checkForDuplicates Kontrola duplicit url na dané doméně a kontrola duplicit model_id na daném modelu a doméně
+     * Funkce odstraňuje lomítko na konci url
+     *
+     * @param  mixed $url
+     * @param  mixed $domain
+     * @param  mixed $model
+     * @param  mixed $modelId
+     * @return void
+     */
+    public function checkForDuplicates($url, $domain, $model = null, $modelId = null) {
+        // Odstranění koncového lomítka z URL, pokud existuje
+        $url = rtrim($url, '/');
+    
+        // Kontrola, zda existuje záznam s identickou URL na stejné doméně
+        $existingUrl = Url::where('url', '=', $url)
+                          ->where('domain', '=', $domain)
+                          ->first();
+        
+        if ($existingUrl) {
+            $this->logger->error('Duplicitní URL nalezena: ' . $url . ' na doméně ' . $domain);
+            return ['status' => false, 'error' => 'Duplicitní URL nalezena']; // Vrací status a popis chyby
+        }
+    
+        // Kontrola, zda na doméně existuje více stejných modelů se stejným model_id
+        if ($model !== null && $modelId !== null) {
+            $existingModel = Url::where('domain', '=', $domain)
+                                ->where('model', '=', $model)
+                                ->where('model_id', '=', $modelId)
+                                ->first();
+    
+            if ($existingModel) {
+                $this->logger->error('Duplicitní model nalezen: ' . $model . ' s model_id ' . $modelId . ' na doméně ' . $domain);
+                return ['status' => false, 'error' => 'Duplicitní model nalezen']; // Vrací status a popis chyby
+            }
+        }
+    
+        return ['status' => true, 'error' => '']; // Žádná duplicita nenalezena
+    }
+    
+    /**
+     * createUrlIfNotDuplicate Funkce vytvoří novou url
+     *
+     * @param  mixed $urlData
+     * @return void
+     */
+    public function createUrlIfNotDuplicate($urlData) {
+        // Rozbalení údajů z pole pro lepší čitelnost
+        $url = $urlData['url'];
+        $domain = $urlData['domain'];
+        $handler = $urlData['handler'];
+        $model = isset($urlData['model']) ? $urlData['model'] : null;
+        $modelId = isset($urlData['model_id']) ? $urlData['model_id'] : null;
+    
+        // Použití funkce checkForDuplicates pro ověření duplicity
+        $duplicationCheck = $this->checkForDuplicates($url, $domain, $model, $modelId);
+    
+        if ($duplicationCheck['status'] === false) {
+            // Byla nalezena duplicita
+            return $duplicationCheck; // Vrací stejnou strukturu jako checkForDuplicates
+        }
+    
+        // Pokud není duplicita, vložíme URL do databáze
+        try {
+            $newUrl = new Url;
+            $newUrl->url = $url;
+            $newUrl->domain = $domain;
+            $newUrl->model = $model;
+            $newUrl->model_id = $modelId;
+            $newUrl->handler = $handler;
+            // ... přidejte další pole podle potřeby
+            $newUrl->save();
+    
+            return ['status' => true, 'error' => '', 'message' => 'URL úspěšně vytvořena'];
+        } catch (\Exception $e) {
+            // Chyba při vkládání do databáze
+            $this->logger->error('Chyba při vkládání URL do databáze: ' . $e->getMessage());
+            return ['status' => false, 'error' => 'Chyba při vkládání do databáze'];
+        }
+    }
+
+    public function handleCreateUrlRequest() {
+        // Kontrola, zda byla data odeslána metodou POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Zpracování $_POST dat
+            $postData = $_POST;
+
+            // Zavolání metody createUrlIfNotDuplicate
+            $result = $this->createUrlIfNotDuplicate($postData);
+
+            if ($result['status']) {
+                // Úspěch: URL byla vytvořena
+                // Přesměrování a nastavení statusu
+                header('Location: some-success-page.php?status=success&message=' . urlencode('URL úspěšně vytvořena'));
+                exit();
+            } else {
+                // Neúspěch: Došlo k duplicitě nebo jiné chybě
+                // Přesměrování a nastavení statusu
+                header('Location: some-error-page.php?status=error&message=' . urlencode($result['error']));
+                exit();
+            }
+        } else {
+            // Pokud data nebyla odeslána metodou POST
+            header('Location: some-error-page.php?status=error&message=' . urlencode('Neplatný požadavek'));
+            exit();
+        }
+    }
+
+    /**
+     * Vrátí všechny URL pro zadanou doménu.
+     * Pokud je doména '*', vrátí všechny URL.
+     *
+     * @param string $domain Doména pro vyhledání URL
+     * @return array Seznam URL záznamů
+     */
+    public function getAllUrlsForDomain($domain) {
+        if ($domain === '*') {
+            // Vrátí všechny URL bez ohledu na doménu
+            $urls = Url::all();
+        } else {
+            // Vrátí URL pouze pro zadanou doménu
+            $urls = Url::where('domain', '=', $domain)->get();
+        }
+
+        // Vrátí výsledky jako pole
+        return $urls->toArray();
+    }
 
 }
 

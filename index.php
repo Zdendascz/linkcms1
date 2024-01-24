@@ -155,6 +155,7 @@ $handlers = [
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
+    "articleDetail" => "linkcms1\Models\Category",
     "isUserLoggedIn" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "getAdministration" => array("linkcms1\adminControl",array($capsule,$logger,$auth)),
     "loginHandler" => array("linkcms1\adminControl", array($capsule, $logger, $auth)),
@@ -238,6 +239,15 @@ switch ($routeInfo[0]) {
                     //$pageData = $instance->getCategoryInfo($vars[6]);
                     $templateDir = "templates/admin/";
                     $renderPage = "admin.twig";
+                    break;
+                }
+                case 'superAdminUrlAdd' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData = $domainInfo->getAllUrlsForDomain("*");
+                    $templateDir = "templates/admin/";
+                    $renderPage = "urls.twig";
                     break;
                 }
                 case 'adminLogin' : {
