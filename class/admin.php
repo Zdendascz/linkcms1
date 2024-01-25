@@ -447,7 +447,70 @@ class adminControl {
     
         return true;
     }
-        
+
+    public function roleFormHandler() {
+        // Kontrola, zda byla data odeslána metodou POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = $_POST;
+    
+            if (!isset($data['name']) || empty($data['name'])) {
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Název role je povinný'));
+                exit();
+            }
+    
+            $roleData = [
+                'name' => $data['name'],
+                'description' => $data['description'] ?? '',
+                'id' => $data['id'] ?? null
+            ];
+    
+            $roleSaveResult = $this->saveRole($roleData);
+            if ($roleSaveResult === null) {
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Role s daným ID neexistuje'));
+                exit();
+            }
+    
+            $roleId = $roleData['id'] ?? $this->capsule::table('roles')->where('name', $roleData['name'])->first()->id;
+            $permissionIds = $data['permissions'] ?? [];
+            $this->updateRolePermissions($roleId, $permissionIds);
+    
+            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=success&message=' . urlencode($roleData['id'] ? 'Role aktualizována' : 'Role vytvořena'));
+            exit();
+        } else {
+            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
+            exit();
+        }
+    }
+     
+    public function permissionFormHandler() {
+        // Kontrola, zda byla data odeslána metodou POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = $_POST;
+    
+            if (!isset($data['name']) || empty($data['name'])) {
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Název oprávnění je povinný'));
+                exit();
+            }
+    
+            $permissionData = [
+                'name' => $data['name'],
+                'description' => $data['description'] ?? '',
+                'id' => $data['id'] ?? null
+            ];
+    
+            $permissionSaveResult = $this->savePermission($permissionData);
+            if ($permissionSaveResult === null) {
+                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Oprávnění s daným ID neexistuje'));
+                exit();
+            }
+    
+            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=success&message=' . urlencode($permissionData['id'] ? 'Oprávnění aktualizováno' : 'Oprávnění vytvořeno'));
+            exit();
+        } else {
+            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
+            exit();
+        }
+    }
 }
 
 ?>
