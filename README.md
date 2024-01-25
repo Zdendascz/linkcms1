@@ -2,6 +2,10 @@
 
 Výhledově jeden z web builderů: VvvebJs / https://grapesjs.com/
 
+# ToDo
+-   Správa url: selecty handleru a modelu nenačtou informace aktuálně z db a neoznačí je vždy, takže 
+    se občas přepíšou už vytvořené modely nebo handlery prázdnými
+
 # FAQ
 ## Q: jak vytvořit novou url webu
 A: V rámci databáze vytvořit nový záznam, buď přes phpmyadmin, nebo přes rozhraní aplikace

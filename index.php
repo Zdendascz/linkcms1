@@ -242,6 +242,15 @@ switch ($routeInfo[0]) {
                     $renderPage = "admin.twig";
                     break;
                 }
+                case 'superOpravneni' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    //$pageData = $instance->getCategoryInfo($vars[6]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "superOpravneni.twig";
+                    break;
+                }
                 case 'superAdminUrlAdd' : {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
