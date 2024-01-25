@@ -246,7 +246,8 @@ switch ($routeInfo[0]) {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
-                    //$pageData = $instance->getCategoryInfo($vars[6]);
+                    $pageData["allRolesWithPremissions"] = $admin->getAllRolesWithPermissionsSorted();
+                    $pageData["allPermissions"] = $admin->getAllPermissions();
                     $templateDir = "templates/admin/";
                     $renderPage = "superOpravneni.twig";
                     break;
