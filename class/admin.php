@@ -268,7 +268,14 @@ class adminControl {
     public function getAdministration(){
 
     }
-
+    
+    /**
+     * getSitesWithUserRoles
+     * vrací všechny stránky, kde má uživatel nějakou roli
+     *
+     * @param  mixed $userId
+     * @return void
+     */
     public function getSitesWithUserRoles($userId) {
         if (!$userId) { return []; }
     
@@ -278,8 +285,163 @@ class adminControl {
                              ->distinct()
                              ->get(['sites.*']);
     }
-
     
+    /**
+     * getAllPermissions
+     * funkce vrací všechna oprávnění v systému, řazené abecedně
+     * @return void
+     */
+    public function getAllPermissions() {
+        // Získání všech oprávnění z databáze a seřazení podle názvu abecedně
+        return $this->capsule::table('permissions')->orderBy('name', 'asc')->get()->toArray();
+    }
+    
+
+           
+    /**
+     * getAllRoles
+     * funkce vrací všechny role v systému abecedně
+     *
+     * @return void
+     */
+    public function getAllRoles() {
+        // Získání všech rolí z databáze a seřazení podle názvu abecedně
+        return $this->capsule::table('roles')->orderBy('name', 'asc')->get()->toArray();
+    } 
+        
+    /**
+     * saveRole
+     * funkce ukládá roli, ale bez oprávnění
+     * @param  mixed $data
+     * @return void
+     */
+    public function saveRole($data) {
+        // Kontrola, zda je nastaveno ID a není prázdné
+        if (isset($data['id']) && !empty($data['id'])) {
+            // Aktualizace existující role
+            $role = $this->capsule::table('roles')->where('id', $data['id'])->first();
+    
+            if ($role) {
+                // Role existuje, provedeme aktualizaci
+                $this->capsule::table('roles')->where('id', $data['id'])->update([
+                    'name' => $data['name'],
+                    'description' => $data['description']
+                ]);
+            } else {
+                // Role s daným ID neexistuje, vrátíme chybu nebo null
+                return null;
+            }
+        } else {
+            // Vytvoření nové role
+            $this->capsule::table('roles')->insert([
+                'name' => $data['name'],
+                'description' => $data['description']
+            ]);
+        }
+    
+        return true;
+    }
+    
+    /**
+     * savePermission
+     * funkce ukládá oprávnění
+     *
+     * @param  mixed $data
+     * @return void
+     */
+    public function savePermission($data) {
+        // Kontrola, zda je nastaveno ID a není prázdné
+        if (isset($data['id']) && !empty($data['id'])) {
+            // Aktualizace existujícího oprávnění
+            $permission = $this->capsule::table('permissions')->where('id', $data['id'])->first();
+    
+            if ($permission) {
+                // Oprávnění existuje, provedeme aktualizaci
+                $this->capsule::table('permissions')->where('id', $data['id'])->update([
+                    'name' => $data['name'],
+                    'description' => $data['description']
+                ]);
+            } else {
+                // Oprávnění s daným ID neexistuje, vrátíme chybu nebo null
+                return null;
+            }
+        } else {
+            // Vytvoření nového oprávnění
+            $this->capsule::table('permissions')->insert([
+                'name' => $data['name'],
+                'description' => $data['description']
+            ]);
+        }
+    
+        return true;
+    }
+    
+    /**
+     * getAllRolesWithPermissionsSorted
+     * funkce vrací všechny role v systému abecedně a u každé jsou oprávnění
+     * také abecedně
+     *
+     * @return void
+     */
+    public function getAllRolesWithPermissionsSorted() {
+        // Získání všech rolí seřazených abecedně
+        $roles = $this->capsule::table('roles')
+                               ->orderBy('name', 'asc')
+                               ->get();
+    
+        $rolesArray = [];
+    
+        foreach ($roles as $role) {
+            // Pro každou roli získáme její oprávnění seřazená abecedně
+            $permissions = $this->capsule::table('role_permissions')
+                                         ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
+                                         ->where('role_permissions.role_id', $role->id)
+                                         ->orderBy('permissions.name', 'asc')
+                                         ->get(['permissions.name', 'permissions.description'])
+                                         ->toArray();
+    
+            $roleArray = (array) $role;
+            $roleArray['permissions'] = $permissions;
+            $rolesArray[] = $roleArray;
+        }
+    
+        return $rolesArray;
+    }
+    
+    /**
+     * updateRolePermissions 
+     * funkce aktualizuje všechna oprávnění dané role
+     *
+     * @param  mixed $roleId
+     * @param  mixed $permissionIds
+     * @return void
+     */
+    public function updateRolePermissions($roleId, $permissionIds) {
+        // Nejprve odstraníme všechny záznamy, které nejsou v novém seznamu oprávnění
+        $this->capsule::table('role_permissions')
+                      ->where('role_id', $roleId)
+                      ->whereNotIn('permission_id', $permissionIds)
+                      ->delete();
+    
+        // Nyní přidáme nová oprávnění, pokud již neexistují
+        foreach ($permissionIds as $permissionId) {
+            $exists = $this->capsule::table('role_permissions')
+                                    ->where('role_id', $roleId)
+                                    ->where('permission_id', $permissionId)
+                                    ->exists();
+    
+            if (!$exists) {
+                // Zápis do tabulky role_permissions, pokud kombinace neexistuje
+                $this->capsule::table('role_permissions')->insert([
+                    'role_id' => $roleId,
+                    'permission_id' => $permissionId
+                ]);
+            }
+        }
+    
+        return true;
+    }
+        
 }
 
 ?>
