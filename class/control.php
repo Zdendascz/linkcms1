@@ -96,53 +96,38 @@ class domainControl {
         return $url->toArray();
     }
     
-    /**
-     * checkForDuplicates Kontrola duplicit url na dané doméně a kontrola duplicit model_id na daném modelu a doméně
-     * Funkce odstraňuje lomítko na konci url
-     *
-     * @param  mixed $url
-     * @param  mixed $domain
-     * @param  mixed $model
-     * @param  mixed $modelId
-     * @return void
-     */
-    public function checkForDuplicates($url, $domain, $model = null, $modelId = null) {
-        // Odstranění koncového lomítka z URL, pokud existuje
-        $url = rtrim($url, '/');
-    
-        // Kontrola, zda existuje záznam s identickou URL na stejné doméně
-        $existingUrl = Url::where('url', '=', $url)
-                          ->where('domain', '=', $domain)
-                          ->first();
+    public function checkForDuplicates($url, $domain, $model = null, $modelId = null, $excludeId = null) {
+        $urlQuery = Url::where('url', '=', $url)->where('domain', '=', $domain);
         
-        if ($existingUrl) {
-            $this->logger->error('Duplicitní URL nalezena: ' . $url . ' na doméně ' . $domain);
-            return ['status' => false, 'error' => 'Duplicitní URL nalezena']; // Vrací status a popis chyby
+        // Vyloučení záznamu s ID, pokud je poskytnuto
+        if ($excludeId) {
+            $urlQuery->where('id', '!=', $excludeId);
         }
     
-        // Kontrola, zda na doméně existuje více stejných modelů se stejným model_id
+        $existingUrl = $urlQuery->first();
+    
+        if ($existingUrl) {
+            return ['status' => false, 'error' => 'Duplicitní URL nalezena'];
+        }
+    
         if ($model !== null && $modelId !== null) {
-            $existingModel = Url::where('domain', '=', $domain)
-                                ->where('model', '=', $model)
-                                ->where('model_id', '=', $modelId)
-                                ->first();
+            $modelQuery = Url::where('domain', '=', $domain)->where('model', '=', $model)->where('model_id', '=', $modelId);
+    
+            if ($excludeId) {
+                $modelQuery->where('id', '!=', $excludeId);
+            }
+    
+            $existingModel = $modelQuery->first();
     
             if ($existingModel) {
-                $this->logger->error('Duplicitní model nalezen: ' . $model . ' s model_id ' . $modelId . ' na doméně ' . $domain);
-                return ['status' => false, 'error' => 'Duplicitní model nalezen']; // Vrací status a popis chyby
+                return ['status' => false, 'error' => 'Duplicitní model nalezen'];
             }
         }
     
-        return ['status' => true, 'error' => '']; // Žádná duplicita nenalezena
+        return ['status' => true, 'error' => ''];
     }
     
         
-    /**
-     * createUrlIfNotDuplicate
-     *
-     * @param  mixed $urlData
-     * @return void
-     */
     public function createUrlIfNotDuplicate($urlData) {
         // Rozbalení údajů z pole pro lepší čitelnost
         $url = $urlData['url'];
@@ -150,37 +135,29 @@ class domainControl {
         $handler = $urlData['handler'];
         $model = isset($urlData['model']) ? $urlData['model'] : null;
         $modelId = isset($urlData['model_id']) ? $urlData['model_id'] : null;
-        $id = isset($urlData['id']) ? $urlData['id'] : null; // ID pro rozpoznání nového vs. existujícího záznamu
+        $id = isset($urlData['id']) && $urlData['id'] ? $urlData['id'] : null;
     
         // Přidání lomítka na začátek URL, pokud tam není
         if (substr($url, 0, 1) !== '/') {
             $url = '/' . $url;
         }
-    
+        
         // Odstranění lomítka z konce URL, pokud tam je
         $url = rtrim($url, '/');
     
-        // Kontrola duplicity
-        $duplicationCheck = $this->checkForDuplicates($url, $domain, $model, $modelId);
+        // Kontrola duplicity s vyloučením aktuálního záznamu při editaci
+        $duplicationCheck = $this->checkForDuplicates($url, $domain, $model, $modelId, $id);
     
         if ($duplicationCheck['status'] === false) {
-            // Byla nalezena duplicita
             return $duplicationCheck;
         }
     
         try {
-            if ($id) {
-                // Aktualizace existujícího záznamu
-                $urlToUpdate = Url::find($id);
-                if (!$urlToUpdate) {
-                    return ['status' => false, 'error' => 'Záznam nenalezen pro aktualizaci'];
-                }
-            } else {
-                // Vytvoření nového záznamu
-                $urlToUpdate = new Url;
+            $urlToUpdate = $id ? Url::find($id) : new Url;
+            if ($id && !$urlToUpdate) {
+                return ['status' => false, 'error' => 'Záznam nenalezen pro aktualizaci'];
             }
     
-            // Nastavení hodnot
             $urlToUpdate->url = $url;
             $urlToUpdate->domain = $domain;
             $urlToUpdate->model = $model;
@@ -190,7 +167,6 @@ class domainControl {
     
             return ['status' => true, 'error' => '', 'message' => $id ? 'URL úspěšně aktualizována' : 'URL úspěšně vytvořena'];
         } catch (\Exception $e) {
-            // Chyba při vkládání nebo aktualizaci do databáze
             $this->logger->error('Chyba při vkládání/aktualizaci URL do databáze: ' . $e->getMessage());
             return ['status' => false, 'error' => 'Chyba při vkládání/aktualizaci do databáze'];
         }
