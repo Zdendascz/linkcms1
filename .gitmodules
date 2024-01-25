@@ -1,3 +1,6 @@
 [submodule "templates/admin"]
 	path = templates/admin
 	url = git@github.com:Zdendascz/linkcmsTplAdmin.git
+[submodule "templates/mini-web/templates/mini-web"]
+	path = templates/mini-web/templates/mini-web
+	url = git@github.com:Zdendascz/linkcmsTplMiniweb.git
