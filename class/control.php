@@ -95,7 +95,19 @@ class domainControl {
         }
         return $url->toArray();
     }
-    
+        
+    /**
+     * checkForDuplicates
+     * Funkce provádí kontrolu diuplicit url. Nesmí být jedna url víckrát pod jednou doménou.
+     * a pokud není model_id 0/null/empty, tak nesmí být stejné model_id ve stejném model
+     *
+     * @param  mixed $url
+     * @param  mixed $domain
+     * @param  mixed $model
+     * @param  mixed $modelId
+     * @param  mixed $excludeId
+     * @return void
+     */
     public function checkForDuplicates($url, $domain, $model = null, $modelId = null, $excludeId = null) {
         $urlQuery = Url::where('url', '=', $url)->where('domain', '=', $domain);
         
@@ -107,10 +119,11 @@ class domainControl {
         $existingUrl = $urlQuery->first();
     
         if ($existingUrl) {
-            return ['status' => false, 'error' => 'Duplicitní URL nalezena'];
+            return ['status' => false, 'error' => 'Vámi zadaná adresa už existuje'];
         }
     
-        if ($model !== null && $modelId !== null) {
+        // Kontrola modelu a model_id pouze pokud model_id není prázdné, null nebo 0
+        if ($model !== null && $modelId !== null && $modelId != 0) {
             $modelQuery = Url::where('domain', '=', $domain)->where('model', '=', $model)->where('model_id', '=', $modelId);
     
             if ($excludeId) {
@@ -120,7 +133,7 @@ class domainControl {
             $existingModel = $modelQuery->first();
     
             if ($existingModel) {
-                return ['status' => false, 'error' => 'Duplicitní model nalezen'];
+                return ['status' => false, 'error' => 'V zadaném modelu je už id '.$modelId.' použito.'];
             }
         }
     
@@ -141,7 +154,7 @@ class domainControl {
         if (substr($url, 0, 1) !== '/') {
             $url = '/' . $url;
         }
-        
+
         // Odstranění lomítka z konce URL, pokud tam je
         $url = rtrim($url, '/');
     
