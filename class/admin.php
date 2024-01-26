@@ -397,9 +397,8 @@ class adminControl {
                                          ->join('permissions', 'role_permissions.permission_id', '=', 'permissions.id')
                                          ->where('role_permissions.role_id', $role->id)
                                          ->orderBy('permissions.name', 'asc')
-                                         ->get(['permissions.name', 'permissions.description']);
+                                         ->get(['permissions.id', 'permissions.name', 'permissions.description']);
     
-            // Převod oprávnění na pole
             $permissionsArray = [];
             foreach ($permissions as $permission) {
                 $permissionsArray[] = (array) $permission;
