@@ -155,7 +155,7 @@ $handlers = [
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
-    "articleDetail" => "linkcms1\Models\Category",
+    "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -242,6 +242,16 @@ switch ($routeInfo[0]) {
                     //$pageData = $instance->getCategoryInfo($vars[6]);
                     $templateDir = "templates/admin/";
                     $renderPage = "admin.twig";
+                    break;
+                }
+                case 'adminCategories' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["allCats"] = $instance->getAllCategoriesInfo($domainData["SITE_ID"]);
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "adminCategories.twig";
                     break;
                 }
                 case 'superOpravneni' : {
