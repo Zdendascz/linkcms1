@@ -249,6 +249,7 @@ switch ($routeInfo[0]) {
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
                     $pageData["allCats"] = $instance->getAllCategoriesInfo($domainData["SITE_ID"]);
+                    $pageData["urlListToAdd"] = $instance->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";
                     $renderPage = "adminCategories.twig";

@@ -270,9 +270,7 @@ class Category extends Model
         if (isset($data['id']) && !empty($data['id'])) {
             // Aktualizace existující kategorie
             $category = self::find($data['id']);
-    
             if (!$category) {
-                // Kategorie s daným ID neexistuje
                 return ['status' => false, 'message' => 'Kategorie nebyla nalezena.'];
             }
         } else {
@@ -290,11 +288,19 @@ class Category extends Model
             'description' => $data['meta_description'] ?? '',
             'keywords' => $data['meta_keywords'] ?? ''
         ]);
-        $category->parent_id = $data['parent_id'] ?? null;
+    
+        // Kontrola a nastavení parent_id
+        $category->parent_id = $data['parent_id'] == '0' ? null : $data['parent_id'];
+    
+        // Najděte nejvyšší hodnotu order_cat pro dané parent_id
+        $highestOrderCat = self::where('parent_id', $category->parent_id)->max('order_cat');
+    
+        // Nastavení order_cat
+        $category->order_cat = $highestOrderCat + 1;
+    
         $category->is_active = $data['is_active'] ?? 1;
         $category->site_id = $data['site_id'];
-        $category->order_cat = $data['order_cat'] ?? 0;
-        $category->url = $data['url'];
+        $category->url = $data['url'] ?? null;
         $category->css_cat = json_encode([
             'a_class' => $data['a_class'] ?? '',
             'a_id' => $data['a_id'] ?? '',
@@ -311,6 +317,7 @@ class Category extends Model
             return ['status' => false, 'message' => 'Nepodařilo se uložit kategorii.'];
         }
     }
+    
 
     /**
      * Handler pro uložení nebo aktualizaci kategorie.
@@ -342,5 +349,105 @@ class Category extends Model
         }
     }
     // Další metody a logika pro model mohou být zde
+    
+    /**
+     * getUrlsWithTitle
+     * 
+     * Tato metoda předpokládá, že existují modely Url, Article a Category 
+     * s odpovídajícími metodami pro načtení dat z databáze. Dále se předpokládá, 
+     * že každý model má atributy odpovídající sloupcům v jejich databázových 
+     * tabulkách. Metoda getUrlsWithTitle načte URL, zjistí jejich model a podle 
+     * toho vyhledá titulky článků nebo kategorií, které pak vrátí v seřazeném poli.
+     *
+     * @param  mixed $domain
+     * @return void
+     */
+    public static function getUrlsWithTitle($domain) {
+        // Načtení všech URL pro zadaný domain
+        $urls = Url::where('domain', $domain)->get();
+        $urlsWithTitle = [];
+    
+        foreach ($urls as $url) {
+            $fullUrl = "https://".$url->domain . $url->url;
+    
+            if ($url->model == 'article') {
+                $article = Article::find($url->model_id);
+                $title = $article ? $article->title : $fullUrl;
+            } elseif ($url->model == 'category') {
+                $category = Category::find($url->model_id);
+                $title = $category ? $category->title : $fullUrl;
+            } else {
+                $title = $fullUrl;  // Nastavíme výchozí hodnotu na plnou URL
+            }
+    
+            $urlsWithTitle[] = [
+                'url' => $fullUrl,
+                'title' => $title
+            ];
+        }
+    
+        // Seřazení pole podle title
+        usort($urlsWithTitle, function ($a, $b) {
+            return strcmp($a['title'], $b['title']);
+        });
+    
+        return $urlsWithTitle;
+    }
+
+    /**
+     * Aktualizuje hierarchii a pořadí kategorií.
+     *
+     * @param array $categoriesData Pole s daty kategorií.
+     * @return array Vrací pole se status a zprávou o výsledku operace.
+     */
+    public function updateCategoryHierarchy($categoriesData) {
+        try {
+            // Zámek transakce pro konzistenci dat
+            DB::beginTransaction();
+    
+            foreach ($categoriesData as $categoryData) {
+                $categoryId = $categoryData['id'];
+                $newParentId = $categoryData['parent_id'] ?? null;
+                $newOrderCat = $categoryData['order_cat'];
+    
+                $category = Category::find($categoryId);
+                if (!$category) {
+                    throw new Exception("Kategorie s ID $categoryId nebyla nalezena.");
+                }
+    
+                // Zjištění, zda došlo ke změně parent_id nebo order_cat
+                $parentChanged = $category->parent_id != $newParentId;
+                $orderChanged = $category->order_cat != $newOrderCat;
+    
+                if ($parentChanged) {
+                    // Aktualizace order_cat pro všechny sourozence ve staré i nové rodině
+                    $this->updateSiblingOrderCat($category->parent_id);
+                    $this->updateSiblingOrderCat($newParentId);
+                } else if ($orderChanged) {
+                    // Aktualizace order_cat pouze v rámci téže rodiny
+                    $this->updateSiblingOrderCat($category->parent_id);
+                }
+    
+                // Aktualizace aktuální kategorie
+                $category->parent_id = $newParentId;
+                $category->order_cat = $newOrderCat;
+                $category->save();
+            }
+    
+            DB::commit();
+            return ['status' => true, 'message' => 'Kategorie byly úspěšně aktualizovány.'];
+        } catch (Exception $e) {
+            DB::rollback();
+            return ['status' => false, 'message' => 'Chyba při aktualizaci kategorií: ' . $e->getMessage()];
+        }
+    }
+    
+    private function updateSiblingOrderCat($parentId) {
+        $siblings = Category::where('parent_id', $parentId)->orderBy('order_cat')->get();
+        foreach ($siblings as $index => $sibling) {
+            $sibling->order_cat = $index + 1; // Nové pořadí
+            $sibling->save();
+        }
+    }
 }
 ?>
