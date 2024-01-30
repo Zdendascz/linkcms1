@@ -53,7 +53,7 @@ class Category extends Model
         $categories = self::where('parent_id', $parentId)
                            ->where('site_id', $siteId)
                            ->where('is_active', 1)
-                           ->orderBy('order_cat', 'desc')
+                           ->orderBy('order_cat', 'asc')
                            ->get();
     
         foreach ($categories as $category) {
@@ -201,63 +201,79 @@ class Category extends Model
      * @param int|null $siteId ID webu (site) nebo null pro všechny webů.
      * @return array
      */
-    public static function getAllCategoriesInfo($siteId = null) {
-        $query = self::query();
-
-        if ($siteId !== null) {
-            $query->where('site_id', $siteId);
-        }
-
-        $categories = $query->get();
-        $categoriesInfo = [];
-
-        foreach ($categories as $category) {
-            $path = $category->getPath(); // Získání cesty kategorie
-            $pathInfo = [];
-
-            foreach ($path as $cat) {
-                $pathInfo[] = [
-                    'id' => $cat->id,
-                    'title' => $cat->title,
-                    'display_name' => $cat->display_name,
-                    // přidat další požadované atributy
-                ];
-            }
-
-            $meta = is_string($category->meta) ? json_decode($category->meta, true) : $category->meta; // Dekódování JSON pole 'meta' nebo přímé použití pole
-            $css_cat = is_string($category->css_cat) ? json_decode($category->css_cat, true) : $category->css_cat; // Dekódování JSON pole 'css_cat' nebo přímé použití pole
+    // public static function getAllCategoriesInfo($siteId = null) {
+    //     $query = self::query();
     
+    //     if ($siteId !== null) {
+    //         $query->where('site_id', $siteId);
+    //     }
+    
+    //     $allCategories = $query->get();
+    
+    //     // Funkce pro vytvoření hierarchické struktury
+    //     $buildHierarchy = function ($parentId = null) use ($allCategories, &$buildHierarchy) {
+    //         $hierarchy = [];
+    
+    //         foreach ($allCategories as $category) {
+    //             if ($category->parent_id == $parentId) {
+    //                 $children = $buildHierarchy($category->id);
+    
+    //                 $meta = !empty($category->meta) ? json_decode($category->meta, true) : [];
+    //                 $css_cat = !empty($category->css_cat) ? json_decode($category->css_cat, true) : [];
+    
+    //                 $hierarchy[] = [
+    //                     'categoryInfo' => [
+    //                         'id' => $category->id,
+    //                         'title' => $category->title,
+    //                         'display_name' => $category->display_name,
+    //                         'top_text' => $category->top_text,
+    //                         'bottom_text' => $category->bottom_text,
+    //                         'meta' => $meta,
+    //                         'parent_id' => $category->parent_id,
+    //                         'is_active' => $category->is_active,
+    //                         'site_id' => $category->site_id,
+    //                         'order_cat' => $category->order_cat,
+    //                         'url' => $category->url,
+    //                         'css_cat' => $css_cat,
+    //                         'created_at' => $category->created_at,
+    //                         'updated_at' => $category->updated_at,
+    //                         'deleted_at' => $category->deleted_at
+    //                     ],
+    //                     'children' => $children
+    //                 ];
+    //             }
+    //         }
+    
+    //         // Řazení podle 'order_cat'
+    //         usort($hierarchy, function ($a, $b) {
+    //             return $a['categoryInfo']['order_cat'] <=> $b['categoryInfo']['order_cat'];
+    //         });
+    
+    //         return $hierarchy;
+    //     };
+    
+    //     return $buildHierarchy();
+    // }
 
-            $categoriesInfo[] = [
-                'categoryInfo' => [
-                    'id' => $category->id,
-                    'title' => $category->title,
-                    'display_name' => $category->display_name,
-                    'top_text' => $category->top_text,
-                    'bottom_text' => $category->bottom_text,
-                    'meta' => $meta,
-                    'parent_id' => $category->parent_id,
-                    'is_active' => $category->is_active,
-                    'site_id' => $category->site_id,
-                    'order_cat' => $category->order_cat,
-                    'url' => $category->url,
-                    'css_cat' => $css_cat,
-                    'created_at' => $category->created_at,
-                    'updated_at' => $category->updated_at,
-                    'deleted_at' => $category->deleted_at
-                    // přidat další požadované atributy
-                ],
-                'pathInfo' => $pathInfo
-            ];
+
+    public static function getAllCategoriesOrdered($siteId, $parentId = null, &$categoriesInfo = []) {
+        $categories = self::where('site_id', $siteId)
+                           ->where('parent_id', $parentId)
+                           ->orderBy('order_cat', 'asc')
+                           ->get();
+        
+        foreach ($categories as $category) {
+            $categoryInfo = self::getCategoryInfo($category->id);
+            if ($categoryInfo !== null) {
+                $categoriesInfo[] = $categoryInfo;
+                // Rekurzivní volání pro přidání potomků
+                self::getAllCategoriesOrdered($siteId, $category->id, $categoriesInfo);
+            }
         }
-
-        // Seřazení podle 'order_cat' a závislostí kategorií
-        usort($categoriesInfo, function($a, $b) {
-            return $a['categoryInfo']['order_cat'] <=> $b['categoryInfo']['order_cat'];
-        });
-
+    
         return $categoriesInfo;
-    } 
+    }
+    
     
     /**
      * Uloží nebo upraví kategorii na základě poskytnutých dat.
