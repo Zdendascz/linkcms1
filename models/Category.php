@@ -222,19 +222,34 @@ class Category extends Model
         
         $categoriesById = [];
         foreach ($categories as $category) {
-            $categoriesById[$category->id] = $category->toArray();
+            $catArray = $category->toArray();
+            
+            // Dekódování JSON hodnot
+            if (!empty($catArray['meta'])) {
+                $catArray['meta'] = json_decode($catArray['meta'], true);
+            } else {
+                $catArray['meta'] = []; // Nastavte výchozí prázdné pole, pokud je meta prázdné
+            }
+    
+            if (!empty($catArray['css_cat'])) {
+                $catArray['css_cat'] = json_decode($catArray['css_cat'], true);
+            } else {
+                $catArray['css_cat'] = []; // Nastavte výchozí prázdné pole, pokud je css_cat prázdné
+            }
+    
+            $categoriesById[$category->id] = $catArray;
             $categoriesById[$category->id]['children'] = [];
         }
-
+    
         $tree = [];
         foreach ($categoriesById as $id => &$category) {
-            if ($category['parent_id'] === null) {
+            if (is_null($category['parent_id'])) {
                 $tree[] =& $category;
             } else {
                 $categoriesById[$category['parent_id']]['children'][] =& $category;
             }
         }
-
+    
         return $tree;
     }
     
@@ -250,12 +265,19 @@ class Category extends Model
         if (isset($data['id']) && !empty($data['id'])) {
             // Aktualizace existující kategorie
             $category = self::find($data['id']);
+            $category->order_cat = $data['order_cat'] ?? null;
+            echo "<pre>".print_r($data)."</pre>";
             if (!$category) {
                 return ['status' => false, 'message' => 'Kategorie nebyla nalezena.'];
             }
         } else {
             // Vytvoření nové kategorie
             $category = new self();
+            // Najděte nejvyšší hodnotu order_cat pro dané parent_id
+            $highestOrderCat = self::where('parent_id', $category->parent_id)->max('order_cat');
+        
+            // Nastavení order_cat
+            $category->order_cat = $highestOrderCat + 1;
         }
     
         // Nastavení hodnot kategorie
@@ -270,14 +292,13 @@ class Category extends Model
         ]);
     
         // Kontrola a nastavení parent_id
-        $category->parent_id = $data['parent_id'] == '0' ? null : $data['parent_id'];
+        if (empty($data['parent_id']) || $data['parent_id'] === '0') {
+            $category->parent_id = null;
+        } else {
+            $category->parent_id = $data['parent_id'];
+        }
     
-        // Najděte nejvyšší hodnotu order_cat pro dané parent_id
-        $highestOrderCat = self::where('parent_id', $category->parent_id)->max('order_cat');
-    
-        // Nastavení order_cat
-        $category->order_cat = $highestOrderCat + 1;
-    
+        
         $category->is_active = $data['is_active'] ?? 1;
         $category->site_id = $data['site_id'];
         $category->url = $data['url'] ?? null;
@@ -289,7 +310,7 @@ class Category extends Model
             'li_id' => $data['li_id'] ?? '',
             'li_style' => $data['li_style'] ?? ''
         ]);
-    
+
         // Uložení kategorie
         if ($category->save()) {
             return ['status' => true, 'message' => 'Kategorie byla úspěšně uložena.'];
@@ -378,29 +399,40 @@ class Category extends Model
         try {
             // Zámek transakce pro konzistenci dat
             self::getConnectionResolver()->connection()->beginTransaction();
-
+    
             $categoryId = $categoryData['id'];
             $newParentId = $categoryData['parent_id'];
             $newOrder = $categoryData['order_cat'];
-
-            // Aktualizace přesunuté kategorie
-            $category = self::find($categoryId);
-            if (!$category) {
+    
+            // Získání současného stavu kategorií se stejným parent_id
+            $currentCategories = self::where('parent_id', $newParentId)
+                                     ->orderBy('order_cat', 'asc')
+                                     ->get();
+    
+            // Najděte kategorii, která se má aktualizovat
+            $categoryToUpdate = $currentCategories->firstWhere('id', $categoryId);
+            if (!$categoryToUpdate) {
                 throw new \Exception("Kategorie nebyla nalezena.");
             }
-            $oldParentId = $category->parent_id;
-            $category->parent_id = $newParentId;
-            $category->order_cat = $newOrder;
-            $category->save();
-
-            // Aktualizace pořadí v cílové struktuře
-            self::updateOrderCat($newParentId);
-
-            // Aktualizace pořadí v původní struktuře, pokud došlo ke změně rodiče
-            if ($oldParentId !== $newParentId) {
-                self::updateOrderCat($oldParentId);
+    
+            // Aktualizace parent_id a order_cat pro vybranou kategorii
+            $categoryToUpdate->parent_id = $newParentId;
+            $categoryToUpdate->order_cat = $newOrder;
+            $categoryToUpdate->save();
+    
+            // Aktualizace pořadí ostatních kategorií
+            foreach ($currentCategories as $index => $category) {
+                // Přeskočení aktualizované kategorie
+                if ($category->id == $categoryId) continue;
+    
+                // Nové order_cat se přiřadí podle aktuálního indexu, ale vynecháváme pozici aktualizované kategorie
+                $newOrderCat = $index < $newOrder ? $index : $index + 1;
+                if ($category->order_cat != $newOrderCat) {
+                    $category->order_cat = $newOrderCat;
+                    $category->save();
+                }
             }
-
+    
             self::getConnectionResolver()->connection()->commit();
             return ['status' => true, 'message' => 'Kategorie byla úspěšně aktualizována.'];
         } catch (\Exception $e) {
@@ -408,6 +440,7 @@ class Category extends Model
             return ['status' => false, 'message' => 'Chyba při aktualizaci kategorie: ' . $e->getMessage()];
         }
     }
+    
 
     private static function updateOrderCat($parentId) {
         $siblings = self::where('parent_id', $parentId)->orderBy('order_cat', 'asc')->get();
