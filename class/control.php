@@ -33,6 +33,7 @@ class domainControl {
     public function loadDomain (){
         $domain = Site::where('domain', '=', str_replace("www.","",$_SERVER['HTTP_HOST']))->first();
         $domainInfo = "";
+        
         if ($domain) {
             foreach ($domain->getAttributes() as $key => $value) {
                 // Kontrola, zda hodnota je JSON a dekódování
@@ -67,6 +68,7 @@ class domainControl {
         // Rozdělení URL na komponenty a získání pouze cesty
         $parsedUrl = parse_url($_SERVER['REQUEST_URI']);
         $path = $parsedUrl['path'];
+        \Tracy\Debugger::barDump($_SERVER['REQUEST_URI'], 'REQUEST');
 
         // Odstranění domény, pokud je součástí cesty
         $path = str_replace('http://' . $_SERVER['SITE_DOMAIN'], '', $path);
@@ -123,7 +125,8 @@ class domainControl {
         }
     
         // Kontrola modelu a model_id pouze pokud model_id není prázdné, null nebo 0
-        if ($model !== null && $modelId !== null && $modelId != 0) {
+        // a model je 'article' nebo 'category'
+        if (($model === 'article' || $model === 'category') && $modelId !== null && $modelId != 0) {
             $modelQuery = Url::where('domain', '=', $domain)->where('model', '=', $model)->where('model_id', '=', $modelId);
     
             if ($excludeId) {
@@ -133,7 +136,7 @@ class domainControl {
             $existingModel = $modelQuery->first();
     
             if ($existingModel) {
-                return ['status' => false, 'error' => 'V zadaném modelu je už id '.$modelId.' použito.'];
+                return ['status' => false, 'error' => 'V zadaném modelu '.$model.' je už id '.$modelId.' použito.'];
             }
         }
     
@@ -265,6 +268,16 @@ class domainControl {
         }
 
         return $domainsInfo;
+    }
+
+    public static function prepareArguments($methodName, $vars) {
+        switch ($methodName) {
+            case 'updateCategoryOrder':
+                return [$_REQUEST];
+            // Zde můžete přidat další případy pro jiné metody
+            default:
+                return $vars;
+        }
     }
 
 }

@@ -156,6 +156,7 @@ $handlers = [
     "categories" => "linkcms1\Models\Category",
     "articleDetail" => "linkcms1\Models\Category",
     "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
+    "updateCategoryOrder" => "linkcms1\Models\Category",
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -248,7 +249,7 @@ switch ($routeInfo[0]) {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
-                    $pageData["allCats"] = $instance->getAllCategoriesOrdered($domainData["SITE_ID"]);
+                    $pageData["allCats"] = $instance->getAllCategoriesTree($domainData["SITE_ID"]);
                     $pageData["urlListToAdd"] = $instance->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";

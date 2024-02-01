@@ -3,6 +3,7 @@ namespace linkcms1\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Tracy\Debugger;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 class Category extends Model
 {
@@ -195,22 +196,46 @@ class Category extends Model
 
     }
 
-    public static function getAllCategoriesOrdered($siteId, $parentId = null, &$categoriesInfo = []) {
+    // public static function getAllCategoriesOrdered($siteId, $parentId = null, &$categoriesInfo = []) {
+    //     $categories = self::where('site_id', $siteId)
+    //                        ->where('parent_id', $parentId)
+    //                        ->orderBy('order_cat', 'asc')
+    //                        ->get();
+        
+    //     foreach ($categories as $category) {
+    //         $categoryInfo = self::getCategoryInfo($category->id);
+    //         if ($categoryInfo !== null) {
+    //             $categoriesInfo[] = $categoryInfo;
+    //             // Rekurzivní volání pro přidání potomků
+    //             self::getAllCategoriesOrdered($siteId, $category->id, $categoriesInfo);
+    //         }
+    //     }
+    
+    //     return $categoriesInfo;
+    // }
+
+    public static function getAllCategoriesTree($siteId) {
         $categories = self::where('site_id', $siteId)
-                           ->where('parent_id', $parentId)
+                           ->orderBy('parent_id', 'asc')
                            ->orderBy('order_cat', 'asc')
                            ->get();
         
+        $categoriesById = [];
         foreach ($categories as $category) {
-            $categoryInfo = self::getCategoryInfo($category->id);
-            if ($categoryInfo !== null) {
-                $categoriesInfo[] = $categoryInfo;
-                // Rekurzivní volání pro přidání potomků
-                self::getAllCategoriesOrdered($siteId, $category->id, $categoriesInfo);
+            $categoriesById[$category->id] = $category->toArray();
+            $categoriesById[$category->id]['children'] = [];
+        }
+
+        $tree = [];
+        foreach ($categoriesById as $id => &$category) {
+            if ($category['parent_id'] === null) {
+                $tree[] =& $category;
+            } else {
+                $categoriesById[$category['parent_id']]['children'][] =& $category;
             }
         }
-    
-        return $categoriesInfo;
+
+        return $tree;
     }
     
     
@@ -349,60 +374,74 @@ class Category extends Model
         return $urlsWithTitle;
     }
 
-    /**
-     * Aktualizuje hierarchii a pořadí kategorií.
-     *
-     * @param array $categoriesData Pole s daty kategorií.
-     * @return array Vrací pole se status a zprávou o výsledku operace.
-     */
-    public function updateCategoryHierarchy($categoriesData) {
+    public static function updateCategoryHierarchy($categoryData) {
         try {
             // Zámek transakce pro konzistenci dat
-            DB::beginTransaction();
-    
-            foreach ($categoriesData as $categoryData) {
-                $categoryId = $categoryData['id'];
-                $newParentId = $categoryData['parent_id'] ?? null;
-                $newOrderCat = $categoryData['order_cat'];
-    
-                $category = Category::find($categoryId);
-                if (!$category) {
-                    throw new Exception("Kategorie s ID $categoryId nebyla nalezena.");
-                }
-    
-                // Zjištění, zda došlo ke změně parent_id nebo order_cat
-                $parentChanged = $category->parent_id != $newParentId;
-                $orderChanged = $category->order_cat != $newOrderCat;
-    
-                if ($parentChanged) {
-                    // Aktualizace order_cat pro všechny sourozence ve staré i nové rodině
-                    $this->updateSiblingOrderCat($category->parent_id);
-                    $this->updateSiblingOrderCat($newParentId);
-                } else if ($orderChanged) {
-                    // Aktualizace order_cat pouze v rámci téže rodiny
-                    $this->updateSiblingOrderCat($category->parent_id);
-                }
-    
-                // Aktualizace aktuální kategorie
-                $category->parent_id = $newParentId;
-                $category->order_cat = $newOrderCat;
-                $category->save();
+            self::getConnectionResolver()->connection()->beginTransaction();
+
+            $categoryId = $categoryData['id'];
+            $newParentId = $categoryData['parent_id'];
+            $newOrder = $categoryData['order_cat'];
+
+            // Aktualizace přesunuté kategorie
+            $category = self::find($categoryId);
+            if (!$category) {
+                throw new \Exception("Kategorie nebyla nalezena.");
             }
-    
-            DB::commit();
-            return ['status' => true, 'message' => 'Kategorie byly úspěšně aktualizovány.'];
-        } catch (Exception $e) {
-            DB::rollback();
-            return ['status' => false, 'message' => 'Chyba při aktualizaci kategorií: ' . $e->getMessage()];
+            $oldParentId = $category->parent_id;
+            $category->parent_id = $newParentId;
+            $category->order_cat = $newOrder;
+            $category->save();
+
+            // Aktualizace pořadí v cílové struktuře
+            self::updateOrderCat($newParentId);
+
+            // Aktualizace pořadí v původní struktuře, pokud došlo ke změně rodiče
+            if ($oldParentId !== $newParentId) {
+                self::updateOrderCat($oldParentId);
+            }
+
+            self::getConnectionResolver()->connection()->commit();
+            return ['status' => true, 'message' => 'Kategorie byla úspěšně aktualizována.'];
+        } catch (\Exception $e) {
+            self::getConnectionResolver()->connection()->rollBack();
+            return ['status' => false, 'message' => 'Chyba při aktualizaci kategorie: ' . $e->getMessage()];
         }
     }
-    
-    private function updateSiblingOrderCat($parentId) {
-        $siblings = Category::where('parent_id', $parentId)->orderBy('order_cat')->get();
+
+    private static function updateOrderCat($parentId) {
+        $siblings = self::where('parent_id', $parentId)->orderBy('order_cat', 'asc')->get();
         foreach ($siblings as $index => $sibling) {
-            $sibling->order_cat = $index + 1; // Nové pořadí
+            // Předpokládáme, že pořadí začíná od 0. Pokud chcete začít od 1, použijte ($index + 1)
+            $sibling->order_cat = $index;
             $sibling->save();
         }
     }
+
+    public function updateCategoryOrder() {
+        // Kontrola, zda byla data odeslána metodou POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Zpracování dat odeslaných AJAXem
+            $categoriesData = json_decode(file_get_contents('php://input'), true);
+    
+            // Případná další validace dat zde
+    
+            // Vytvoření instance modelu a volání metody pro aktualizaci
+            $categoryModel = new \linkcms1\Models\Category(); // Ujistěte se, že používáte správný namespace
+            $result = $categoryModel::updateCategoryHierarchy($categoriesData); // Metoda by měla být statická na základě předchozího kódu
+    
+            // Nastavení hlavičky pro JSON odpověď
+            header('Content-Type: application/json');
+            // Vrácení odpovědi
+            echo json_encode($result);
+        } else {
+            // Pokud data nebyla odeslána metodou POST, vrací chybovou zprávu
+            header('Content-Type: application/json');
+            echo json_encode(['status' => false, 'message' => 'Neplatný požadavek']);
+        }
+        exit; // Doporučuji přidat exit pro ukončení skriptu po odeslání odpovědi
+    }
+    
+    
 }
 ?>
