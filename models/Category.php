@@ -266,7 +266,6 @@ class Category extends Model
             // Aktualizace existující kategorie
             $category = self::find($data['id']);
             $category->order_cat = $data['order_cat'] ?? null;
-            echo "<pre>".print_r($data)."</pre>";
             if (!$category) {
                 return ['status' => false, 'message' => 'Kategorie nebyla nalezena.'];
             }
@@ -404,34 +403,43 @@ class Category extends Model
             $newParentId = $categoryData['parent_id'];
             $newOrder = $categoryData['order_cat'];
     
-            // Získání současného stavu kategorií se stejným parent_id
-            $currentCategories = self::where('parent_id', $newParentId)
-                                     ->orderBy('order_cat', 'asc')
-                                     ->get();
-    
-            // Najděte kategorii, která se má aktualizovat
-            $categoryToUpdate = $currentCategories->firstWhere('id', $categoryId);
-            if (!$categoryToUpdate) {
+            // Načtení původní kategorie
+            $originalCategory = self::find($categoryId);
+            if (!$originalCategory) {
                 throw new \Exception("Kategorie nebyla nalezena.");
             }
     
-            // Aktualizace parent_id a order_cat pro vybranou kategorii
-            $categoryToUpdate->parent_id = $newParentId;
-            $categoryToUpdate->order_cat = $newOrder;
-            $categoryToUpdate->save();
+            $originalParentId = $originalCategory->parent_id;
+            $originalOrder = $originalCategory->order_cat;
     
-            // Aktualizace pořadí ostatních kategorií
-            foreach ($currentCategories as $index => $category) {
-                // Přeskočení aktualizované kategorie
-                if ($category->id == $categoryId) continue;
-    
-                // Nové order_cat se přiřadí podle aktuálního indexu, ale vynecháváme pozici aktualizované kategorie
-                $newOrderCat = $index < $newOrder ? $index : $index + 1;
-                if ($category->order_cat != $newOrderCat) {
-                    $category->order_cat = $newOrderCat;
-                    $category->save();
+            // Příprava na aktualizaci pořadí v původním parent_id, pokud je potřeba
+            if ($originalParentId !== $newParentId) {
+                // Zpracování kategorií s původním parent_id
+                self::where('parent_id', $originalParentId)
+                    ->where('order_cat', '>', $originalOrder)
+                    ->decrement('order_cat');
+                
+                // Zpracování kategorií s novým parent_id
+                self::where('parent_id', $newParentId)
+                    ->where('order_cat', '>=', $newOrder)
+                    ->increment('order_cat');
+            } else {
+                // Stejné parent_id, ale změna order_cat
+                if ($newOrder < $originalOrder) {
+                    self::where('parent_id', $newParentId)
+                        ->whereBetween('order_cat', [$newOrder, $originalOrder])
+                        ->increment('order_cat');
+                } elseif ($newOrder > $originalOrder) {
+                    self::where('parent_id', $newParentId)
+                        ->whereBetween('order_cat', [$originalOrder, $newOrder])
+                        ->decrement('order_cat');
                 }
             }
+    
+            // Aktualizace přesunované kategorie
+            $originalCategory->parent_id = $newParentId;
+            $originalCategory->order_cat = $newOrder;
+            $originalCategory->save();
     
             self::getConnectionResolver()->connection()->commit();
             return ['status' => true, 'message' => 'Kategorie byla úspěšně aktualizována.'];
