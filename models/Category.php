@@ -312,6 +312,12 @@ class Category extends Model
 
         // Uložení kategorie
         if ($category->save()) {
+            $instance = new self(); // Vytvoření instance aktuální třídy
+            $urlProcessingResult = $instance->processUrlForCategory($category);
+            if ($urlProcessingResult['status'] === false) {
+                // V případě chyby při zpracování URL
+                return $urlProcessingResult;
+            }
             return ['status' => true, 'message' => 'Kategorie byla úspěšně uložena.'];
         } else {
             return ['status' => false, 'message' => 'Nepodařilo se uložit kategorii.'];
@@ -483,6 +489,41 @@ class Category extends Model
         exit; // Doporučuji přidat exit pro ukončení skriptu po odeslání odpovědi
     }
     
+    public static function processUrlForCategory($category) {
+        $parsedUrl = parse_url($category->url);
+        $domain = preg_replace('/^(http:\/\/|https:\/\/)/', '', $parsedUrl['host']);
+        $domain = preg_replace('/^www\./', '', $domain);
+        $domain = rtrim($domain, '/');
+        $path = $parsedUrl['path'] ?? '';
     
+        // Kontrola existence URL s danou doménou a cestou
+        $existingUrl = Url::where('domain', $domain)
+                          ->where('url', $path)
+                          ->first();
+    
+        // Pokud existuje URL se stejnou doménou a cestou
+        if ($existingUrl) {
+            // Situace 2.1
+            if ($existingUrl->model === 'categories' && $existingUrl->model_id == $category->id) {
+                // Záznam se edituje pouze pokud je potřeba aktualizace
+                $existingUrl->url = $path; // V případě, že je třeba aktualizovat
+                $existingUrl->save();
+                return ['status' => true, 'message' => 'URL úspěšně aktualizována.'];
+            }
+            // V ostatních případech nemůžeme vytvořit duplicitní záznam
+            return ['status' => false, 'message' => 'Existuje záznam s identickou URL a doménou.'];
+        } else {
+            // Situace 1 a 2.2: Vytvoření nového záznamu
+            $newUrl = new Url;
+            $newUrl->domain = $domain;
+            $newUrl->url = $path;
+            $newUrl->handler = 'categories';
+            $newUrl->model = 'categories';
+            $newUrl->model_id = $category->id;
+            $newUrl->save();
+    
+            return ['status' => true, 'message' => 'Nová URL úspěšně vytvořena.'];
+        }
+    }
 }
 ?>

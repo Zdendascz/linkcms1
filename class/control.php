@@ -9,6 +9,7 @@ use Monolog\Logger;
 use Tracy\Debugger;
 
 Debugger::enable(Debugger::DEVELOPMENT);
+
 /**
  * Třída reprezentující web, zpracovává kontrolu domény a informace o ní.
  * také zpracovává informace o konkrétní stránce
