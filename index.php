@@ -16,6 +16,7 @@ use Dotenv\Exception\InvalidPathException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
+use linkcms1\Models\Article;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
@@ -154,7 +155,8 @@ $handlers = [
     "articles" => "linkcms1\Models\Category",
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
-    "articleDetail" => "linkcms1\Models\Category",
+    "handleSaveOrUpdateArticle" => "linkcms1\Models\Articles",
+    "articleDetail" => "linkcms1\Models\Article",
     "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
     "updateCategoryOrder" => "linkcms1\Models\Category",
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
@@ -254,6 +256,18 @@ switch ($routeInfo[0]) {
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";
                     $renderPage = "adminCategories.twig";
+                    break;
+                }
+                case 'adminAddArticles' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $catData = new linkcms1\Models\Category();
+                    $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
+                    $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "addArticle.twig";
                     break;
                 }
                 case 'superOpravneni' : {
