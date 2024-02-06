@@ -221,6 +221,13 @@ class Article extends Model {
         $categories = $article->categories->map(function($category) {
             return ['id' => $category->id, 'name' => $category->title];
         })->toArray();
+
+        // Dynamické sestavení celé URL
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $host = $_SERVER["HTTP_HOST"];
+        $basePath = $_SERVER["BASE_PATH"] ?? ''; // Předpokládá, že BASE_PATH je definováno, jinak prázdný řetězec
+        $articlePath = optional($article->url)->url;
+        $fullUrl = $protocol . $host . $basePath . $articlePath;
     
         $data = [
             'id' => $article->id,
@@ -228,7 +235,7 @@ class Article extends Model {
             'short_text' => $article->short_text,
             'author_name' => optional($article->author)->name,
             'categories' => $categories,
-            'url' => optional($article->url)->url,
+            'url' => $fullUrl,
             // Přidání 'meta' informací
             'meta' => [
                 'title' => $metaData['title'] ?? '',
