@@ -55,7 +55,7 @@ class Article extends Model {
      * @param int $userId ID uživatele provádějícího akci.
      * @return array Výsledek operace.
      */
-    public static function saveOrUpdateArticle($data,$uid) {
+    public static function saveOrUpdateArticle($data) {
         DB::beginTransaction();
 
         try {
@@ -156,33 +156,36 @@ class Article extends Model {
         }
     }
 
-    public function articleDetail(){
-
-    }
+   /* public function articleDetail($id){
+        return getArticleDetails($id)
+    }*/
 
     public function handleSaveOrUpdateArticle() {
         // Kontrola, zda byla data odeslána metodou POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Zpracování dat formuláře
             $postData = $_POST;
-
+    
             // Případná další validace dat zde
-
-            // Volání metody pro uložení nebo aktualizaci kategorie
+    
+            // Volání metody pro uložení nebo aktualizaci článku
             $result = Article::saveOrUpdateArticle($postData);
-
+    
             if ($result['status']) {
                 // Úspěch: Přesměrování s úspěšnou zprávou
-                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=success&message=' . urlencode($result['message']));
+                $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=success&message=' . urlencode($result['message']) : $_SERVER['HTTP_REFERER'] . '?status=success&message=' . urlencode($result['message']);
+                header('Location: ' . $redirectUrl);
                 exit;
             } else {
                 // Neúspěch: Přesměrování s chybovou zprávou
-                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode($result['message']));
+                $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=error&message=' . urlencode($result['message']) : $_SERVER['HTTP_REFERER'] . '?status=error&message=' . urlencode($result['message']);
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         } else {
             // Pokud data nebyla odeslána metodou POST, přesměrování zpět s chybovou zprávou
-            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
+            $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=error&message=' . urlencode('Neplatný požadavek') : $_SERVER['HTTP_REFERER'] . '?status=error&message=' . urlencode('Neplatný požadavek');
+            header('Location: ' . $redirectUrl);
             exit;
         }
     }
@@ -208,8 +211,11 @@ class Article extends Model {
             ->first();
     
         if (!$article) {
-            return null;
+            return null; // Nebo vhodná reakce v případě, že článek není nalezen
         }
+    
+        // Dekódování JSON 'meta' pole do asociativního pole
+        $metaData = json_decode($article->meta, true);
     
         // Získání informací o kategoriích včetně id a názvu
         $categories = $article->categories->map(function($category) {
@@ -223,6 +229,16 @@ class Article extends Model {
             'author_name' => optional($article->author)->name,
             'categories' => $categories,
             'url' => optional($article->url)->url,
+            // Přidání 'meta' informací
+            'meta' => [
+                'title' => $metaData['title'] ?? '',
+                'description' => $metaData['description'] ?? '',
+                'keywords' => $metaData['keywords'] ?? '',
+            ],
+            // Přidání dalších polí, pokud je potřebujete
+            'subtitle' => $article->subtitle,
+            'snippet' => $article->snippet,
+            'body' => $article->body,
         ];
     
         return $data;
