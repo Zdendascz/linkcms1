@@ -67,7 +67,7 @@ class Article extends Model {
                     'short_text' => $data['short_text'] ?? null,
                     'snippet' => $data['snippet'] ?? null,
                     'body' => $data['body'],
-                    'author_id' => $uid,
+                    'user_id' => $data['user_id'],
                     'meta' => json_encode([
                         'title' => $data['meta']['title'] ?? '',
                         'description' => $data['meta']['description'] ?? '',
@@ -141,9 +141,13 @@ class Article extends Model {
             $existingUrl->url = $path;
             $existingUrl->save();
         } else {
+            $domain = $_SERVER['HTTP_HOST']; // Získá doménu i s portem, pokud je specifikován
+            $domain = preg_replace('/^www\./', '', $domain); // Odstraní www pokud existuje
+            $domain = explode(':', $domain)[0]; // Odstraní port pokud existuje
+
             // Vytvoření nového URL záznamu
             $newUrl = new Url;
-            $newUrl->domain = ''; // Prázdná doména, protože nevyžadujeme specifickou doménu
+            $newUrl->domain = $domain;
             $newUrl->url = $path;
             $newUrl->handler = 'articleDetail';
             $newUrl->model = 'articles';
@@ -156,7 +160,7 @@ class Article extends Model {
 
     }
 
-    public function handleSaveOrUpdateArticle($uid) {
+    public function handleSaveOrUpdateArticle() {
         // Kontrola, zda byla data odeslána metodou POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Zpracování dat formuláře
@@ -165,7 +169,7 @@ class Article extends Model {
             // Případná další validace dat zde
 
             // Volání metody pro uložení nebo aktualizaci kategorie
-            $result = Article::saveOrUpdateArticle($postData,$uid);
+            $result = Article::saveOrUpdateArticle($postData);
 
             if ($result['status']) {
                 // Úspěch: Přesměrování s úspěšnou zprávou
@@ -181,6 +185,52 @@ class Article extends Model {
             header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
             exit;
         }
+    }
+
+    /**
+     * Načte všechny články včetně kategorií, ke kterým patří.
+     * @return Illuminate\Database\Eloquent\Collection Kolekce článků s kategoriemi
+     */
+    public static function getAllArticlesWithCategories() {
+        // Použijeme metodu with() pro načtení relace 'categories' pro každý článek
+        return self::with('categories')->get();
+    }
+
+    /**
+     * Získá detail článku včetně autora, kategorií a URL.
+     *
+     * @param int $id ID článku
+     * @return array Data článku
+     */
+    public static function getArticleDetails($id) {
+        $article = self::with(['author', 'categories', 'url'])
+            ->where('id', $id)
+            ->first();
+    
+        if (!$article) {
+            return null;
+        }
+    
+        // Získání informací o kategoriích včetně id a názvu
+        $categories = $article->categories->map(function($category) {
+            return ['id' => $category->id, 'name' => $category->title];
+        })->toArray();
+    
+        $data = [
+            'id' => $article->id,
+            'title' => $article->title,
+            'short_text' => $article->short_text,
+            'author_name' => optional($article->author)->name,
+            'categories' => $categories,
+            'url' => optional($article->url)->url,
+        ];
+    
+        return $data;
+    }
+    
+    // Předpokládá, že máte definovaný vztah 'url', který vrátí URL článku
+    public function url() {
+        return $this->hasOne(Url::class, 'model_id')->where('model', '=', 'articles');
     }
 }
 

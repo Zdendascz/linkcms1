@@ -155,7 +155,8 @@ $handlers = [
     "articles" => "linkcms1\Models\Category",
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
-    "handleSaveOrUpdateArticle" => "linkcms1\Models\Articles",
+    "handleSaveOrUpdateArticle" => "linkcms1\Models\Article",
+    "getAllArticlesWithCategories" => "linkcms1\Models\Article",
     "articleDetail" => "linkcms1\Models\Article",
     "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
     "updateCategoryOrder" => "linkcms1\Models\Category",
@@ -262,12 +263,26 @@ switch ($routeInfo[0]) {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
+                    if(isset($_GET["id"]) and is_numeric($_GET["id"]))
+                        $pageData["article"] = Article::getArticleDetails($_GET["id"]);
                     $catData = new linkcms1\Models\Category();
                     $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
                     $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";
                     $renderPage = "addArticle.twig";
+                    break;
+                }
+                case 'adminAllArticles' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $catData = new linkcms1\Models\Category();
+                    $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
+                    $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "allArticles.twig";
                     break;
                 }
                 case 'superOpravneni' : {
