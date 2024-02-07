@@ -2,12 +2,42 @@
 namespace linkcms1\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Tracy\Debugger;
+use Tracy\Debugger; // Importování třídy Debugger z Tracy
+use Monolog\Logger; // Importování třídy Logger z Monologu
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class Category extends Model
 {
 
+    protected $logger;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        //******************** Vytvoření loggeru
+        $this->logger = new Logger('linkcms');
+        // Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
+        $debugHandler = new RotatingFileHandler(__DIR__.'/logs/info.log', 0, Logger::INFO);
+        $this->logger->pushHandler($debugHandler);
+
+        // nastavení rotačního handleru pro debug
+        $debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug.log', 0, Logger::DEBUG);
+        $this->logger->pushHandler($debugHandler);
+
+        // Nastavení handleru pro logování úrovně WARNING do jednoho souboru
+        $warningHandler = new StreamHandler(__DIR__.'/logs/warning.log', Logger::WARNING);
+        $warningHandler->setFormatter(new LineFormatter(null, null, true, true));
+        $this->logger->pushHandler($warningHandler);
+
+        // Nastavení handleru pro logování úrovně ERROR do nerotujícího souboru
+        $errorHandler = new StreamHandler(__DIR__.'/logs/error.log', Logger::ERROR);
+        $this->logger->pushHandler($errorHandler);
+    }
+    
     protected $table = 'categories'; // Název tabulky v databázi
 
     protected $fillable = [
@@ -98,34 +128,34 @@ class Category extends Model
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function articles($category_id)
-    {
-        //Debugger::barDump($category_id,'ID kategorie');
-        return ArticleCategory::where('category_id', $category_id)
-            ->join('articles', 'article_categories.article_id', '=', 'articles.id')
-            ->join('urls', 'urls.model_id', '=', 'articles.id')
-            ->where('articles.status', 'active')
-            ->where('urls.model', 'articles')
-            ->get();
+    // public function articles($category_id)
+    // {
+    //     //Debugger::barDump($category_id,'ID kategorie');
+    //     return ArticleCategory::where('category_id', $category_id)
+    //         ->join('articles', 'article_categories.article_id', '=', 'articles.id')
+    //         ->join('urls', 'urls.model_id', '=', 'articles.id')
+    //         ->where('articles.status', 'active')
+    //         ->where('urls.model', 'articles')
+    //         ->get();
             
-    }
+    // }
 
     /**
      * Získá detail konkrétního článku
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function articleDetail($article_id)
-    {
-        //Debugger::barDump($category_id,'ID kategorie');
-        return ArticleCategory::where('articles.id', $article_id)
-            ->join('articles', 'article_categories.article_id', '=', 'articles.id')
-            ->join('urls', 'urls.model_id', '=', 'articles.id')
-            ->where('articles.status', 'active')
-            ->where('urls.model', 'articles')
-            ->get();
+    // public function articleDetail($article_id)
+    // {
+    //     //Debugger::barDump($category_id,'ID kategorie');
+    //     return ArticleCategory::where('articles.id', $article_id)
+    //         ->join('articles', 'article_categories.article_id', '=', 'articles.id')
+    //         ->join('urls', 'urls.model_id', '=', 'articles.id')
+    //         ->where('articles.status', 'active')
+    //         ->where('urls.model', 'articles')
+    //         ->get();
             
-    }
+    // }
 
 
     /**
@@ -267,6 +297,7 @@ class Category extends Model
             $category = self::find($data['id']);
             $category->order_cat = $data['order_cat'] ?? null;
             if (!$category) {
+                $this->logger->error('Kategorie nebyla nalezena:'.print_r($data));
                 return ['status' => false, 'message' => 'Kategorie nebyla nalezena.'];
             }
         } else {
@@ -320,6 +351,7 @@ class Category extends Model
             }
             return ['status' => true, 'message' => 'Kategorie byla úspěšně uložena.'];
         } else {
+            $this->logger->error('Kategorii se nepodařilo vytvořit:'.print_r($data));
             return ['status' => false, 'message' => 'Nepodařilo se uložit kategorii.'];
         }
     }
@@ -345,11 +377,13 @@ class Category extends Model
                 exit;
             } else {
                 // Neúspěch: Přesměrování s chybovou zprávou
+                $this->logger->warning($result['message']);
                 header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode($result['message']));
                 exit;
             }
         } else {
             // Pokud data nebyla odeslána metodou POST, přesměrování zpět s chybovou zprávou
+            $this->logger->warning('Neplatný požadavek přo volání metody handleSaveOrUpdateCategory');
             header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
             exit;
         }
@@ -401,7 +435,6 @@ class Category extends Model
         usort($urlsWithTitle, function ($a, $b) {
             return strcmp($a['title'], $b['title']);
         });
-
         return $urlsWithTitle;
     }
 
@@ -417,6 +450,7 @@ class Category extends Model
             // Načtení původní kategorie
             $originalCategory = self::find($categoryId);
             if (!$originalCategory) {
+                $this->logger->warning("Kategorie ".$categoryId." nebyla nalezena.");
                 throw new \Exception("Kategorie nebyla nalezena.");
             }
     
@@ -456,6 +490,7 @@ class Category extends Model
             return ['status' => true, 'message' => 'Kategorie byla úspěšně aktualizována.'];
         } catch (\Exception $e) {
             self::getConnectionResolver()->connection()->rollBack();
+            $this->logger->warning($e->getMessage());
             return ['status' => false, 'message' => 'Chyba při aktualizaci kategorie: ' . $e->getMessage()];
         }
     }
@@ -516,6 +551,7 @@ class Category extends Model
                 return ['status' => true, 'message' => 'URL úspěšně aktualizována.'];
             }
             // V ostatních případech nemůžeme vytvořit duplicitní záznam
+            $this->logger->info('Existuje záznam s identickou URL ('.$path.') a doménou ('.$domain.').');
             return ['status' => false, 'message' => 'Existuje záznam s identickou URL a doménou.'];
         } else {
             // Situace 1 a 2.2: Vytvoření nového záznamu
