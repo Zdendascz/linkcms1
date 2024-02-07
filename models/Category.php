@@ -365,38 +365,43 @@ class Category extends Model
      * tabulkách. Metoda getUrlsWithTitle načte URL, zjistí jejich model a podle 
      * toho vyhledá titulky článků nebo kategorií, které pak vrátí v seřazeném poli.
      *
-     * @param  mixed $domain
-     * @return void
+     * @param  string $domain
+     * @return array
      */
     public static function getUrlsWithTitle($domain) {
-        // Načtení všech URL pro zadaný domain
-        $urls = Url::where('domain', $domain)->get();
+        // Načtení všech URL pro zadaný domain, kde model je null nebo 'article'
+        $urls = Url::where('domain', $domain)
+                    ->where(function ($query) {
+                        $query->whereNull('model')
+                            ->orWhere('model', 'articles');
+                    })
+                    ->get();
+
         $urlsWithTitle = [];
-    
+
         foreach ($urls as $url) {
-            $fullUrl = "https://".$url->domain . $url->url;
-    
-            if ($url->model == 'article') {
+            $fullUrl = "https://" . $url->domain . $url->url;
+
+            if ($url->model == 'articles') {
+                // Načtení článku, pokud je model 'article'
                 $article = Article::find($url->model_id);
                 $title = $article ? $article->title : $fullUrl;
-            } elseif ($url->model == 'category') {
-                $category = Category::find($url->model_id);
-                $title = $category ? $category->title : $fullUrl;
             } else {
-                $title = $fullUrl;  // Nastavíme výchozí hodnotu na plnou URL
+                // Nastavení výchozí hodnoty na plnou URL, pokud je model null
+                $title = $fullUrl;
             }
-    
+
             $urlsWithTitle[] = [
                 'url' => $fullUrl,
                 'title' => $title
             ];
         }
-    
+
         // Seřazení pole podle title
         usort($urlsWithTitle, function ($a, $b) {
             return strcmp($a['title'], $b['title']);
         });
-    
+
         return $urlsWithTitle;
     }
 
