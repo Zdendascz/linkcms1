@@ -146,20 +146,12 @@ class domainControl {
         
     public function createUrlIfNotDuplicate($urlData) {
         // Rozbalení údajů z pole pro lepší čitelnost
-        $url = $urlData['url'];
+        $url = '/' . ltrim($urlData['url'], '/'); // Přidání lomítka na začátek URL a odstranění případného duplicitního lomítka
         $domain = $urlData['domain'];
         $handler = $urlData['handler'];
         $model = isset($urlData['model']) ? $urlData['model'] : null;
         $modelId = isset($urlData['model_id']) ? $urlData['model_id'] : null;
         $id = isset($urlData['id']) && $urlData['id'] ? $urlData['id'] : null;
-    
-        // Přidání lomítka na začátek URL, pokud tam není
-        if (substr($url, 0, 1) !== '/') {
-            $url = '/' . $url;
-        }
-
-        // Odstranění lomítka z konce URL, pokud tam je
-        $url = rtrim($url, '/');
     
         // Kontrola duplicity s vyloučením aktuálního záznamu při editaci
         $duplicationCheck = $this->checkForDuplicates($url, $domain, $model, $modelId, $id);
