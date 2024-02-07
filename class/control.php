@@ -69,11 +69,11 @@ class domainControl {
         // Rozdělení URL na komponenty a získání pouze cesty
         $parsedUrl = parse_url($_SERVER['REQUEST_URI']);
         $path = $parsedUrl['path'];
-        \Tracy\Debugger::barDump($_SERVER['REQUEST_URI'], 'REQUEST');
 
         // Odstranění domény, pokud je součástí cesty
         $path = str_replace('http://' . $_SERVER['SITE_DOMAIN'], '', $path);
         $path = str_replace('https://' . $_SERVER['SITE_DOMAIN'], '', $path);
+        $path = str_replace($_SERVER["BASE_PATH"], '', $path);
 
         // Vyhledání URL v databázi, která odpovídá jak doméně, tak cestě
         $siteDomain = $_SERVER['SITE_DOMAIN']; // Uložení hodnoty do lokální proměnné
@@ -84,8 +84,6 @@ class domainControl {
         })
         ->where('url', '=', $path)
         ->first();
-                
-        $this->logger->debug('Načtení informací o url ze SQL [domain:'.$_SERVER['SITE_DOMAIN']." path:".$path."]");         
     
         // Kontrola, zda byl záznam nalezen
         if ($url === null) {
@@ -96,6 +94,7 @@ class domainControl {
             // Můžete vrátit null nebo jinou výchozí hodnotu
             return null;
         }
+        \Tracy\Debugger::barDump($url->toArray(), 'aktuální url');
         return $url->toArray();
     }
         

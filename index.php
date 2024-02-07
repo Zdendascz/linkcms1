@@ -152,7 +152,7 @@ foreach($_SERVER as $key => $value){
 
 //******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
-    "articles" => "linkcms1\Models\Category",
+    "articles" => "linkcms1\Models\Article",
     "get_all_users" => "linkcms1\Models\User",
     "categories" => "linkcms1\Models\Category",
     "handleSaveOrUpdateArticle" => "linkcms1\Models\Article",
