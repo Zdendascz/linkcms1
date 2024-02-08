@@ -90,6 +90,8 @@ class domainControl {
         if ($url === null) {
             // Zde můžete zpracovat situaci, kdy záznam nebyl nalezen
             \Tracy\Debugger::barDump($_SERVER['SITE_DOMAIN'].$path, 'Problém s nalezením url v db');
+            \Tracy\Debugger::barDump($siteDomain, '-> doména');
+            \Tracy\Debugger::barDump($path, '-> path');
             $this->logger->warning('Adresa '.$_SERVER['SITE_DOMAIN'].$path." nenalezena");
 
             // Můžete vrátit null nebo jinou výchozí hodnotu

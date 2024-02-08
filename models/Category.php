@@ -541,6 +541,7 @@ class Category extends Model
         $domain = preg_replace('/^www\./', '', $domain);
         $domain = rtrim($domain, '/');
         $path = $parsedUrl['path'] ?? '';
+        $path = str_replace($_SERVER["BASE_PATH"],"",$path);
     
         // Kontrola existence URL s danou doménou a cestou
         $existingUrl = Url::where('domain', $domain)

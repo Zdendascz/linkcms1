@@ -280,6 +280,24 @@ class Article extends Model {
     public function url() {
         return $this->hasOne(Url::class, 'model_id')->where('model', '=', 'articles');
     }
+
+    function getActiveArticlesByCategoryWithUrlAndAuthor($categoryId) {
+        $articles = Article::with(['url', 'user'])
+                    ->whereHas('categories', function ($query) use ($categoryId) {
+                        $query->where('id', $categoryId);
+                    })
+                    ->where('status', 'active')
+                    ->get();
+    
+        return $articles->map(function ($article) {
+            return [
+                'id' => $article->id,
+                'title' => $article->title,
+                'url' => $article->url ? $article->url->url : null,
+                'author_name' => $article->user ? $article->user->name : 'Unknown', // Předpokládejme, že uživatel má atribut 'name'
+            ];
+        });
+    }
 }
 
 ?>
