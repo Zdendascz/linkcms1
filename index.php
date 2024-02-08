@@ -367,7 +367,7 @@ Tracy\Debugger::barDump($premissions, 'Oprávnění data');
 if(!isset($pageData)){$pageData = "";}
 
 $variables = [
-    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null), // zobrazení navigace
+    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null,"navigation clearfix"), // zobrazení navigace
     'displayData' => $displayData, // data obsahu stránky
     'pageData' => $pageData, // informace o konkrétní stránce
     'domainData' => $domainData, //data o doméně

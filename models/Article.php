@@ -245,6 +245,7 @@ class Article extends Model {
             // Přidání dalších polí, pokud je potřebujete
             'subtitle' => $article->subtitle,
             'snippet' => $article->snippet,
+            'status' => $article->status,
             'body' => $article->body,
         ];
     

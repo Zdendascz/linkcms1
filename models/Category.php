@@ -21,20 +21,20 @@ class Category extends Model
         //******************** Vytvoření loggeru
         $this->logger = new Logger('linkcms');
         // Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
-        $debugHandler = new RotatingFileHandler(__DIR__.'/logs/info.log', 0, Logger::INFO);
+        $debugHandler = new RotatingFileHandler(__DIR__.'/../logs/info.log', 0, Logger::INFO);
         $this->logger->pushHandler($debugHandler);
 
         // nastavení rotačního handleru pro debug
-        $debugHandler = new RotatingFileHandler(__DIR__.'/logs/debug.log', 0, Logger::DEBUG);
+        $debugHandler = new RotatingFileHandler(__DIR__.'/../logs/debug.log', 0, Logger::DEBUG);
         $this->logger->pushHandler($debugHandler);
 
         // Nastavení handleru pro logování úrovně WARNING do jednoho souboru
-        $warningHandler = new StreamHandler(__DIR__.'/logs/warning.log', Logger::WARNING);
+        $warningHandler = new StreamHandler(__DIR__.'/../logs/warning.log', Logger::WARNING);
         $warningHandler->setFormatter(new LineFormatter(null, null, true, true));
         $this->logger->pushHandler($warningHandler);
 
         // Nastavení handleru pro logování úrovně ERROR do nerotujícího souboru
-        $errorHandler = new StreamHandler(__DIR__.'/logs/error.log', Logger::ERROR);
+        $errorHandler = new StreamHandler(__DIR__.'/../logs/error.log', Logger::ERROR);
         $this->logger->pushHandler($errorHandler);
     }
     
@@ -78,8 +78,13 @@ class Category extends Model
      * @param int|null $parentId ID nadřazené kategorie, nebo null pro kořenové kategorie
      * @return string HTML navigace
      */
-    public static function generateNavigation($siteId, $parentId = null) {
-        $html = '<ul>';
+    public static function generateNavigation($siteId, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
+        $insertUl = "";
+        if($ulClass) $insertUl .= " class='".$ulClass."'";
+        if($ulId) $insertUl .= " id='".$ulId."'";
+        if($ulStyle) $insertUl .= " style='".$ulStyle."'";
+        
+        $html = '<ul '.$insertUl.'>';
     
         $categories = self::where('parent_id', $parentId)
                            ->where('site_id', $siteId)
@@ -551,7 +556,6 @@ class Category extends Model
                 return ['status' => true, 'message' => 'URL úspěšně aktualizována.'];
             }
             // V ostatních případech nemůžeme vytvořit duplicitní záznam
-            $this->logger->info('Existuje záznam s identickou URL ('.$path.') a doménou ('.$domain.').');
             return ['status' => false, 'message' => 'Existuje záznam s identickou URL a doménou.'];
         } else {
             // Situace 1 a 2.2: Vytvoření nového záznamu
