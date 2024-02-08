@@ -336,7 +336,7 @@ class Category extends Model
         
         $category->is_active = $data['is_active'] ?? 1;
         $category->site_id = $data['site_id'];
-        $category->url = $data['url'] ?? null;
+        $category->url = $data['url_manual'] ?? null;
         $category->css_cat = json_encode([
             'a_class' => $data['a_class'] ?? '',
             'a_id' => $data['a_id'] ?? '',
@@ -419,7 +419,7 @@ class Category extends Model
         $urlsWithTitle = [];
 
         foreach ($urls as $url) {
-            $fullUrl = "https://" . $url->domain . $url->url;
+            $fullUrl = $_SERVER["REQUEST_SCHEME"]."://" . $url->domain .$_SERVER["BASE_PATH"]. $url->url;
 
             if ($url->model == 'articles') {
                 // Načtení článku, pokud je model 'article'
@@ -536,6 +536,7 @@ class Category extends Model
     
     public static function processUrlForCategory($category) {
         $parsedUrl = parse_url($category->url);
+        Debugger::barDump($parsedUrl, 'Parse url');
         $domain = preg_replace('/^(http:\/\/|https:\/\/)/', '', $parsedUrl['host']);
         $domain = preg_replace('/^www\./', '', $domain);
         $domain = rtrim($domain, '/');
