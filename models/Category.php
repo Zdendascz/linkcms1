@@ -88,7 +88,7 @@ class Category extends Model
     
         $categories = self::where('parent_id', $parentId)
                            ->where('site_id', $siteId)
-                           ->where('is_active', 1)
+                           ->where('is_active', 'active')
                            ->orderBy('order_cat', 'asc')
                            ->get();
     

@@ -57,7 +57,7 @@ class Article extends Model {
      */
     public static function saveOrUpdateArticle($data) {
         DB::beginTransaction();
-
+    
         try {
             $article = self::updateOrCreate(
                 ['id' => $data['id'] ?? null], // Klíče pro vyhledání
@@ -76,17 +76,22 @@ class Article extends Model {
                     'status' => $data['status']
                 ]
             );
-
+    
             // Zpracování kategorií
             if (isset($data['categories'])) {
                 $article->categories()->sync($data['categories']);
             }
-
+    
             // Zpracování URL
             $safeTitle = self::createSafeTitle($data['title']); // Implementujte podle vašich pravidel
             $urlPath = '/' . $safeTitle; // Příklad, jak by mohla URL vypadat
-            self::processUrlForArticle($article, $urlPath);
-
+            $urlProcessResult = self::processUrlForArticle($article, $urlPath);
+    
+            if (is_array($urlProcessResult) && !$urlProcessResult['success']) {
+                DB::rollBack();
+                return $urlProcessResult; // Vrátí chybovou zprávu z processUrlForArticle
+            }
+    
             DB::commit();
             return ['status' => true, 'message' => 'Článek byl úspěšně uložen.'];
         } catch (\Exception $e) {
@@ -128,24 +133,41 @@ class Article extends Model {
         $parsedUrl = parse_url($urlPath);
         $path = $parsedUrl['path'] ?? '';
     
-        // Kontrola existence URL s danou cestou
-        $existingUrl = Url::where('url', $path)
-                          ->where('handler', 'articleDetail')
-                          ->where('model', 'articles')
+        // Najde existující URL pro daný článek
+        $existingUrl = Url::where('model', 'articles')
                           ->where('model_id', $article->id)
                           ->first();
     
-        // Pokud existuje URL se stejnou cestou
+        // Pokud existuje URL a je shodná s novou URL, nic se neděje
+        if ($existingUrl && $existingUrl->url === $path) {
+            return true;
+        }
+    
+        // Kontrola existence jiného záznamu s novou URL
+        $urlConflict = Url::where('url', $path)
+                          ->where('model', '!=', 'articles')
+                          ->orWhere(function($query) use ($path, $article) {
+                              $query->where('url', $path)
+                                    ->where('model', '=', 'articles')
+                                    ->where('model_id', '!=', $article->id);
+                          })
+                          ->first();
+    
+        if ($urlConflict) {
+            // Existuje konflikt URL, vrátí chybu s ID konfliktního záznamu
+            return ['success' => false, 'message' => 'URL už existuje', 'conflict_id' => $urlConflict->id];
+        }
+    
         if ($existingUrl) {
-            // Aktualizace URL
+            // Aktualizace stávajícího URL záznamu
             $existingUrl->url = $path;
             $existingUrl->save();
         } else {
-            $domain = $_SERVER['HTTP_HOST']; // Získá doménu i s portem, pokud je specifikován
-            $domain = preg_replace('/^www\./', '', $domain); // Odstraní www pokud existuje
-            $domain = explode(':', $domain)[0]; // Odstraní port pokud existuje
-
-            // Vytvoření nového URL záznamu
+            // Vytvoření nového URL záznamu, pokud neexistuje
+            $domain = $_SERVER['HTTP_HOST'];
+            $domain = preg_replace('/^www\./', '', $domain);
+            $domain = explode(':', $domain)[0];
+    
             $newUrl = new Url;
             $newUrl->domain = $domain;
             $newUrl->url = $path;
@@ -154,6 +176,8 @@ class Article extends Model {
             $newUrl->model_id = $article->id;
             $newUrl->save();
         }
+    
+        return true;
     }
 
    /* public function articleDetail($id){
