@@ -5,6 +5,7 @@ use linkcms1\Models\User as EloquentUser;
 use linkcms1\Models\Site;
 use linkcms1\Models\Url;
 use linkcms1\Models\Category;
+use linkcms1\Models\Article;
 use Monolog\Logger;
 use Tracy\Debugger;
 
@@ -215,14 +216,26 @@ class domainControl {
      * @return array Seznam URL záznamů
      */
     public function getAllUrlsForDomain($domain) {
-        if ($domain === '*') {
-            // Vrátí všechny URL bez ohledu na doménu
-            $urls = Url::all();
-        } else {
-            // Vrátí URL pouze pro zadanou doménu
-            $urls = Url::where('domain', '=', $domain)->get();
-        }
-
+        $urls = $domain === '*' ? Url::all() : Url::where('domain', '=', $domain)->get();
+        
+        $urls = $urls->map(function ($url) {
+            if ($url->model === 'categories') {
+                $content = Category::find($url->model_id);
+            } elseif ($url->model === 'articles') {
+                $content = Article::find($url->model_id);
+            } else {
+                $content = null;
+            }
+    
+            if ($content) {
+                $url->content_title = $content->title;
+            } else {
+                $url->content_title = null;
+            }
+    
+            return $url;
+        });
+    
         // Vrátí výsledky jako pole
         return $urls->toArray();
     }
