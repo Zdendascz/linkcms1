@@ -180,7 +180,7 @@ class Article extends Model {
             $newUrl = new Url;
             $newUrl->domain = $domain;
             $newUrl->url = $path;
-            $newUrl->handler = 'articleDetail';
+            $newUrl->handler = 'getArticleDetails';
             $newUrl->model = 'articles';
             $newUrl->model_id = $article->id;
             $newUrl->save();
