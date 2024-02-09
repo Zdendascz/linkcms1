@@ -558,7 +558,6 @@ class Category extends Model
                 return ['status' => true, 'message' => 'URL úspěšně aktualizována.'];
             }
             // V ostatních případech nemůžeme vytvořit duplicitní záznam
-            $this->logger->error('Existuje záznam s identickou URL a doménou.');
             return ['status' => false, 'message' => 'Existuje záznam s identickou URL a doménou.'];
         } else {
             // Situace 1 a 2.2: Vytvoření nového záznamu
