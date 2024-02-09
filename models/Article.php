@@ -59,6 +59,12 @@ class Article extends Model {
         DB::beginTransaction();
     
         try {
+            $body = $data['body'];
+            $body = str_replace("<pre>","",$body);
+            $body = str_replace("</pre>","",$body);
+            $body = preg_replace('/<form[^>]*>/', '', $body);
+            $body = preg_replace('/<\/form>/', '', $body);
+            $body = htmlspecialchars($body);
             $article = self::updateOrCreate(
                 ['id' => $data['id'] ?? null], // Klíče pro vyhledání
                 [
@@ -66,12 +72,13 @@ class Article extends Model {
                     'subtitle' => $data['subtitle'] ?? null,
                     'short_text' => $data['short_text'] ?? null,
                     'snippet' => $data['snippet'] ?? null,
-                    'body' => $data['body'],
+                    'body' => $body,
                     'user_id' => $data['user_id'],
                     'meta' => json_encode([
                         'title' => $data['meta']['title'] ?? '',
                         'description' => $data['meta']['description'] ?? '',
                         'keywords' => $data['meta']['keywords'] ?? '',
+                        'content_typ' => $data['meta']['content_typ'] ?? '',
                     ]),
                     'status' => $data['status']
                 ]
@@ -82,14 +89,16 @@ class Article extends Model {
                 $article->categories()->sync($data['categories']);
             }
     
-            // Zpracování URL
-            $safeTitle = self::createSafeTitle($data['title']); // Implementujte podle vašich pravidel
-            $urlPath = '/' . $safeTitle; // Příklad, jak by mohla URL vypadat
-            $urlProcessResult = self::processUrlForArticle($article, $urlPath);
-    
-            if (is_array($urlProcessResult) && !$urlProcessResult['success']) {
-                DB::rollBack();
-                return $urlProcessResult; // Vrátí chybovou zprávu z processUrlForArticle
+            // Zpracování URL pouze pokud se jedná o nový článek
+            if (empty($data['id'])) { // Pokud není nastaveno ID, jedná se o nový článek
+                $safeTitle = self::createSafeTitle($data['title']); // Implementujte podle vašich pravidel
+                $urlPath = '/' . $safeTitle; // Příklad, jak by mohla URL vypadat
+                $urlProcessResult = self::processUrlForArticle($article, $urlPath);
+        
+                if (is_array($urlProcessResult) && !$urlProcessResult['success']) {
+                    DB::rollBack();
+                    return $urlProcessResult; // Vrátí chybovou zprávu z processUrlForArticle
+                }
             }
     
             DB::commit();
@@ -180,10 +189,6 @@ class Article extends Model {
         return true;
     }
 
-   /* public function articleDetail($id){
-        return getArticleDetails($id)
-    }*/
-
     public function handleSaveOrUpdateArticle() {
         // Kontrola, zda byla data odeslána metodou POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -233,7 +238,7 @@ class Article extends Model {
         $article = self::with(['author', 'categories', 'url'])
             ->where('id', $id)
             ->first();
-    
+            Debugger::barDump($id, 'ID článku');
         if (!$article) {
             return null; // Nebo vhodná reakce v případě, že článek není nalezen
         }
@@ -265,12 +270,13 @@ class Article extends Model {
                 'title' => $metaData['title'] ?? '',
                 'description' => $metaData['description'] ?? '',
                 'keywords' => $metaData['keywords'] ?? '',
+                'content_typ' => $metaData['content_typ'] ?? '',
             ],
             // Přidání dalších polí, pokud je potřebujete
             'subtitle' => $article->subtitle,
             'snippet' => $article->snippet,
             'status' => $article->status,
-            'body' => $article->body,
+            'body' => htmlspecialchars_decode($article->body),
         ];
     
         return $data;

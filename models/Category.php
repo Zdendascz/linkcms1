@@ -37,7 +37,7 @@ class Category extends Model
         $errorHandler = new StreamHandler(__DIR__.'/../logs/error.log', Logger::ERROR);
         $this->logger->pushHandler($errorHandler);
     }
-    
+
     protected $table = 'categories'; // Název tabulky v databázi
 
     protected $fillable = [
@@ -558,17 +558,18 @@ class Category extends Model
                 return ['status' => true, 'message' => 'URL úspěšně aktualizována.'];
             }
             // V ostatních případech nemůžeme vytvořit duplicitní záznam
+            $this->logger->error('Existuje záznam s identickou URL a doménou.');
             return ['status' => false, 'message' => 'Existuje záznam s identickou URL a doménou.'];
         } else {
             // Situace 1 a 2.2: Vytvoření nového záznamu
             $newUrl = new Url;
             $newUrl->domain = $domain;
             $newUrl->url = $path;
-            $newUrl->handler = 'categories';
+            $newUrl->handler = 'getActiveArticlesByCategoryWithUrlAndAuthor';
             $newUrl->model = 'categories';
             $newUrl->model_id = $category->id;
             $newUrl->save();
-    
+            Debugger::barDump($newUrl, 'NEW url');
             return ['status' => true, 'message' => 'Nová URL úspěšně vytvořena.'];
         }
     }
