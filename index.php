@@ -24,10 +24,6 @@ use linkcms1\Models\UserDetails;
 
 
 
-//******************** aktivace debuggeru
-Debugger::enable(Debugger::DEVELOPMENT);
-//Debugger::enable(Debugger::PRODUCTION);
-
 //******************** Vytvoření loggeru
 $logger = new Logger('linkcms');
 // Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
@@ -54,6 +50,14 @@ function loadConfiguration($logger) {
 
     try {
         $dotenv->load();
+        // Zkontrolujte, zda existuje .env_local, a nastavte režim debuggeru
+        if (file_exists($envPath . '/.env_local')) {
+            // Vývojové prostředí
+            Tracy\Debugger::enable(Tracy\Debugger::DEVELOPMENT);
+        } else {
+            // Produkční prostředí
+            Tracy\Debugger::enable(Tracy\Debugger::PRODUCTION);
+        }
         return $_ENV; // nebo getenv() pro přístup k proměnným prostředí
     } catch (InvalidPathException $e) {
         $logger->error("Konfigurační soubor .env nebyl nalezen.");
