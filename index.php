@@ -369,6 +369,13 @@ switch ($routeInfo[0]) {
                     $renderPage = "article.twig";
                     break;
                 }
+                case 'articles' : {
+                    $catData = new linkcms1\Models\Category();
+                    $pageData = $catData->getCategoryInfo($vars[6]);
+
+                    $renderPage = "home.twig";
+                    break;
+                }
                 default : {
                     $renderPage = $vars[5].".twig";
                     $category = new linkcms1\Models\Category;
