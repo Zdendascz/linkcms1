@@ -49,6 +49,12 @@ class Article extends Model {
         return $this->belongsToMany(Category::class, 'article_categories', 'article_id', 'category_id');
     }
 
+    // Accessor pro 'meta' atribut
+    public function getMetaAttribute($value)
+    {
+        return json_decode($value, true);
+    }
+
     /**
      * Uloží nebo aktualizuje článek a jeho kategorie.
      * @param array $data Data článku.
@@ -194,7 +200,7 @@ class Article extends Model {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Zpracování dat formuláře
             $postData = $_POST;
-    
+            Debugger::barDump($_POST, 'Odeslaná data');
             // Případná další validace dat zde
     
             // Volání metody pro uložení nebo aktualizaci článku
@@ -224,8 +230,20 @@ class Article extends Model {
      * @return Illuminate\Database\Eloquent\Collection Kolekce článků s kategoriemi
      */
     public static function getAllArticlesWithCategories() {
-        // Použijeme metodu with() pro načtení relace 'categories' pro každý článek
-        return self::with('categories')->get();
+        $articles = self::with('categories')->get();
+    
+        // Transformace 'meta' dat z JSON na PHP pole pro každý článek, pokud ještě nejsou pole
+        $articles->transform(function ($article) {
+            if (is_string($article->meta)) { // Kontrola, zda je 'meta' řetězec
+                $article->meta = json_decode($article->meta, true);
+            } elseif (is_null($article->meta)) {
+                $article->meta = []; // Přiřaďte prázdné pole, pokud je 'meta' null
+            }
+            // Pokud 'meta' už je pole, nic se neděje
+            return $article;
+        });
+    
+        return $articles;
     }
 
     /**

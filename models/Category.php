@@ -231,24 +231,6 @@ class Category extends Model
 
     }
 
-    // public static function getAllCategoriesOrdered($siteId, $parentId = null, &$categoriesInfo = []) {
-    //     $categories = self::where('site_id', $siteId)
-    //                        ->where('parent_id', $parentId)
-    //                        ->orderBy('order_cat', 'asc')
-    //                        ->get();
-        
-    //     foreach ($categories as $category) {
-    //         $categoryInfo = self::getCategoryInfo($category->id);
-    //         if ($categoryInfo !== null) {
-    //             $categoriesInfo[] = $categoryInfo;
-    //             // Rekurzivní volání pro přidání potomků
-    //             self::getAllCategoriesOrdered($siteId, $category->id, $categoriesInfo);
-    //         }
-    //     }
-    
-    //     return $categoriesInfo;
-    // }
-
     public static function getAllCategoriesTree($siteId) {
         $categories = self::where('site_id', $siteId)
                            ->orderBy('parent_id', 'asc')

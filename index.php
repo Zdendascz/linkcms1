@@ -276,6 +276,21 @@ switch ($routeInfo[0]) {
                     $renderPage = "addArticle.twig";
                     break;
                 }
+                case 'adminAddPages' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    if(isset($_GET["id"]) and is_numeric($_GET["id"])){
+                        $pageData["article"] = Article::getArticleDetails($_GET["id"]);
+                    }
+                    $catData = new linkcms1\Models\Category();
+                    $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
+                    $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "addPage.twig";
+                    break;
+                }
                 case 'adminAllArticles' : {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
