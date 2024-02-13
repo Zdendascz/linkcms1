@@ -17,6 +17,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
 use linkcms1\Models\Article;
+use linkcms1\Models\SiteConfiguration;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
@@ -101,6 +102,12 @@ $auth = new PHPAuth($dbh, $config);
 //******************** volání informací o doméně
 $domainInfo = new \linkcms1\domainControl($capsule, $logger);
 $domainInfo->loadDomain();
+$domainConf = new SiteConfiguration();
+$domainConfData = $domainConf->getAllConfigurationsBySiteId($_SERVER["SITE_ID"]);
+foreach($domainConfData as $key =>$value){
+    $_SERVER["domain"][$key] = $value;
+}
+Tracy\Debugger::barDump($domainConfData, 'Domain Conf');
 
 //******************** routování cesty
 $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) use ($capsule) {    
@@ -151,6 +158,8 @@ Tracy\Debugger::barDump($userRoles, 'Role uživatele');
 foreach($_SERVER as $key => $value){
     if(strpos($key, "SITE_") !== false){
         $domainData[$key] = $value;
+    } elseif(strpos($key, "domain") !== false){
+        $domainData[$key] = $value;
     }
 }
 
@@ -165,6 +174,8 @@ $handlers = [
     "getArticleDetails" => "linkcms1\Models\Article",
     "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
     "updateCategoryOrder" => "linkcms1\Models\Category",
+    "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
+    "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -328,6 +339,32 @@ switch ($routeInfo[0]) {
                     $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
                     $templateDir = "templates/admin/";
                     $renderPage = "urls.twig";
+                    break;
+                }
+                case 'adminConfDef' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allDomains"] = $domainInfo->getAllDomainsWithInfo();
+                    $sitesData = new linkcms1\Models\Site();
+                    $pageData["allHandlers"] = $sitesData->getAllUniqueHandlers();
+                    $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
+                    $templateDir = "templates/admin/";
+                    $renderPage = "confDef.twig";
+                    break;
+                }
+                case 'adminConf' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allDomains"] = $domainInfo->getAllDomainsWithInfo();
+                    $sitesData = new linkcms1\Models\Site();
+                    $pageData["allHandlers"] = $sitesData->getAllUniqueHandlers();
+                    $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
+                    $templateDir = "templates/admin/";
+                    $renderPage = "config.twig";
                     break;
                 }
                 case 'adminLogin' : {

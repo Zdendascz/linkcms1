@@ -7,6 +7,9 @@ Výhledově jeden z web builderů: VvvebJs / https://grapesjs.com/
     se občas přepíšou už vytvořené modely nebo handlery prázdnými
 -   Pořád se občas při práci s kategoriemi správně neuloží údaje
 -   Při práci s url mohu čísla u model_id nahradit názvy článků či kategorií
+-   Plánovaní publikace obsahu
+-   Řízení přesměrování
+-   Správa medií
 
 # FAQ
 ## Q: jak vytvořit novou url webu
@@ -22,3 +25,11 @@ status: (success,true)/(error,false)
 message: ["zprava1","zprava2"]
 Zobrazení se provádí voláním js funkce **updateUrlParamsAndShowAlert(elementId)**, kde elementId je typicky id
 karty, v níž je obsažen formulář. 
+
+## Q: Stavy u navigací / článků a jak fungují:
+A: Zatím to tak moc není, ale je tu myšlenka: 
+-   "aktivní" obsah je normálně přístupný a viditelný
+-   "v přípravě" obsah je na webu viditelný jen pro přihlášeného uživatele s právem přístupu do administrace
+-   "skrytý" obsah není běžně viditelný, ale kdo má url, ten se tam dostane (toto zatím není)
+-   "zakázaný" obsah je k dispozci jen v administraci
+-   "smazaný" obsah vidí jen oprávnění uživatelé
