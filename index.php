@@ -168,6 +168,7 @@ $handlers = [
     "articles" => "linkcms1\Models\Article",
     "getActiveArticlesByCategoryWithUrlAndAuthor" => "linkcms1\Models\Article",
     "get_all_users" => "linkcms1\Models\User",
+    "handleSaveOrUpdateSite" => "linkcms1\Models\Site",
     "categories" => "linkcms1\Models\Category",
     "handleSaveOrUpdateArticle" => "linkcms1\Models\Article",
     "getAllArticlesWithCategories" => "linkcms1\Models\Article",
@@ -176,6 +177,7 @@ $handlers = [
     "updateCategoryOrder" => "linkcms1\Models\Category",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
+    "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -365,6 +367,19 @@ switch ($routeInfo[0]) {
                     $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
                     $templateDir = "templates/admin/";
                     $renderPage = "config.twig";
+                    break;
+                }
+                case 'myweb' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allDomains"] = $domainInfo->getAllDomainsWithInfo();
+                    $sitesData = new linkcms1\Models\Site();
+                    $pageData["allHandlers"] = $sitesData->getAllUniqueHandlers();
+                    $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
+                    $templateDir = "templates/admin/";
+                    $renderPage = "myweb.twig";
                     break;
                 }
                 case 'adminLogin' : {

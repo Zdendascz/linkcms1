@@ -105,6 +105,8 @@ class ConfigurationDefinition extends Model {
             exit;
         }
     }
+
+    
 }
 
 ?>
