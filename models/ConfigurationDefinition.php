@@ -106,7 +106,50 @@ class ConfigurationDefinition extends Model {
         }
     }
 
+
+    public static function saveSiteConfiguration($siteId, $configId, $value) {
+        $config = DB::table('site_configurations')
+                    ->where('site_id', $siteId)
+                    ->where('config_id', $configId)
+                    ->first();
     
+        if ($config) {
+            // Aktualizace existující konfigurace
+            return DB::table('site_configurations')
+                ->where('id', $config->id)
+                ->update(['value' => $value]);
+        } else {
+            // Vytvoření nové konfigurace
+            return DB::table('site_configurations')->insert([
+                'site_id' => $siteId,
+                'config_id' => $configId,
+                'value' => $value
+            ]);
+        }
+    }
+
+    public function handleSaveSiteConfiguration() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $siteId = $_POST['site_id']; // Nebo získat z kontextu aplikace/session
+            $configId = $_POST['id'];
+            $value = $_POST['value'];
+    
+            // Uložení nebo aktualizace konfigurace
+            $result = ConfigurationDefinition::saveSiteConfiguration($siteId, $configId, $value);
+    
+            if ($result) {
+                // Úspěch
+                echo json_encode(['success' => true, 'message' => 'Konfigurace byla úspěšně uložena.']);
+            } else {
+                // Chyba
+                echo json_encode(['success' => false, 'message' => 'Nepodařilo se uložit konfiguraci.']);
+            }
+        } else {
+            // Neplatný požadavek
+            echo json_encode(['success' => false, 'message' => 'Neplatný požadavek.']);
+        }
+        exit;
+    }
 }
 
 ?>

@@ -28,8 +28,8 @@ karty, v níž je obsažen formulář.
 
 ## Q: Stavy u navigací / článků a jak fungují:
 A: Zatím to tak moc není, ale je tu myšlenka: 
--   "aktivní" obsah je normálně přístupný a viditelný
--   "v přípravě" obsah je na webu viditelný jen pro přihlášeného uživatele s právem přístupu do administrace
--   "skrytý" obsah není běžně viditelný, ale kdo má url, ten se tam dostane (toto zatím není)
--   "zakázaný" obsah je k dispozci jen v administraci
--   "smazaný" obsah vidí jen oprávnění uživatelé
+-   "aktivní" (active) obsah je normálně přístupný a viditelný
+-   "v přípravě" (development) obsah je na webu viditelný jen pro přihlášeného uživatele s právem přístupu do administrace
+-   "skrytý" (hidden) obsah není běžně viditelný, ale kdo má url, ten se tam dostane (toto zatím není)
+-   "zakázaný" (suspend) obsah je k dispozci jen v administraci
+-   "smazaný" (deleted) obsah vidí jen oprávnění uživatelé

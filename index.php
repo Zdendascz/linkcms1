@@ -177,6 +177,7 @@ $handlers = [
     "updateCategoryOrder" => "linkcms1\Models\Category",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
+    "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),

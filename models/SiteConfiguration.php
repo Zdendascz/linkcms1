@@ -48,6 +48,8 @@ class SiteConfiguration extends Model
 
         return $result;
     }
+
+    
 }
 
 ?>
