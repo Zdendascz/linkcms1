@@ -16,6 +16,7 @@ use Dotenv\Exception\InvalidPathException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
+use linkcms1\Models\UploadedFile;
 use linkcms1\Models\Article;
 use linkcms1\Models\SiteConfiguration;
 use PHPAuth\Config as PHPAuthConfig;
@@ -175,6 +176,8 @@ $handlers = [
     "getArticleDetails" => "linkcms1\Models\Article",
     "handleSaveOrUpdateCategory" => "linkcms1\Models\Category",
     "updateCategoryOrder" => "linkcms1\Models\Category",
+    "getAllFilesBySiteId" => "linkcms1\Models\UploadedFile",
+    "handleUploadRequest" => "linkcms1\Models\UploadedFile",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
@@ -319,6 +322,18 @@ switch ($routeInfo[0]) {
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";
                     $renderPage = "allArticles.twig";
+                    break;
+                }
+                case 'adminAllFiles' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $catData = new linkcms1\Models\Category();
+                    $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
+                    $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "fileUpload.twig";
                     break;
                 }
                 case 'superOpravneni' : {
