@@ -10,6 +10,11 @@ Výhledově jeden z web builderů: VvvebJs / https://grapesjs.com/
 -   Plánovaní publikace obsahu
 -   Řízení přesměrování
 -   Správa medií
+    - Odstranit soubory z nahrávacího pole po dokonční nahrávání (nebo ne?)
+    - Vyřešit obsazenost diskové kvóty
+    - Omezit jen na určité datové typy (obrázky, texťáky, pdf, komprimované)
+    - Automaticky převádět obrázky na jiné formáty a rozměry
+-   lépe vyřešit odstraňování diakritiky
 
 # FAQ
 ## Q: jak vytvořit novou url webu
