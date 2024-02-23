@@ -10,11 +10,15 @@ Výhledově jeden z web builderů: VvvebJs / https://grapesjs.com/
 -   Plánovaní publikace obsahu
 -   Řízení přesměrování
 -   Správa medií
-    - Odstranit soubory z nahrávacího pole po dokonční nahrávání (nebo ne?)
-    - Vyřešit obsazenost diskové kvóty
-    - Omezit jen na určité datové typy (obrázky, texťáky, pdf, komprimované)
-    - Automaticky převádět obrázky na jiné formáty a rozměry
+    -   Odstranit soubory z nahrávacího pole po dokonční nahrávání (nebo ne?)
+    -   Vyřešit obsazenost diskové kvóty
+    -   Omezit jen na určité datové typy (obrázky, texťáky, pdf, komprimované)
+    -   Automaticky převádět obrázky na jiné formáty a rozměry
 -   lépe vyřešit odstraňování diakritiky
+-   ošetření duplicitní hodnoty při vytváření konfigurační proměnné
+-   otestování, kde všude chybí kontrola proměnných
+-   přidat placeholdery jako výchozí proměnné tam, kde jsou
+
 
 # FAQ
 ## Q: jak vytvořit novou url webu
@@ -38,3 +42,7 @@ A: Zatím to tak moc není, ale je tu myšlenka:
 -   "skrytý" (hidden) obsah není běžně viditelný, ale kdo má url, ten se tam dostane (toto zatím není)
 -   "zakázaný" (suspend) obsah je k dispozci jen v administraci
 -   "smazaný" (deleted) obsah vidí jen oprávnění uživatelé
+
+## Q: jak se řeší nastavení rozměrů obrázků
+A: Řeší se prostřednictvím konfigurace proměnných. Vždy jde o dvojici rozměrů s označením [nazevPromenne]_[w/h] Přičemž název 
+proměnné je typicky: banner, articles, articleDetail, galleryThumbanil ... Systém sám při nahrávání obrázků na google cloud vytvoří verze

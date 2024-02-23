@@ -14,7 +14,9 @@ use Google\Cloud\Storage\StorageClient;
 use League\Flysystem\Filesystem;
 use League\Flysystem\GoogleCloudStorage\GoogleCloudStorageAdapter; // Opravený import
 use Exception;
-
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 
 class UploadedFile extends Model {
     protected $table = 'uploaded_files'; // Explicitně specifikuje název tabulky, pokud není standardní
@@ -26,6 +28,7 @@ class UploadedFile extends Model {
     }
 
     public static function uploadFiles(array $files) {
+        
         try {
             // Připojení k databázi a autentizace (uvedené mimo tento kód)
             $dbh = new PDO(
@@ -41,20 +44,7 @@ class UploadedFile extends Model {
             if (!$userId) {
                 throw new Exception("User is not authenticated.");
             }
-    
-            // Inicializace Google Cloud Storage klienta a Filesystem
-            $projectId = $_SERVER['domain']['gc_project_id'];
-            $keyFilePath = $_SERVER['domain']['gc_key_json'];
-            $bucketName = $_SERVER['domain']['gc_bucket_name'];
-            $storageClient = new StorageClient([
-                'projectId' => $projectId,
-                'keyFilePath' => $keyFilePath,
-            ]);
-    
-            $bucket = $storageClient->bucket($bucketName);
-            $adapter = new GoogleCloudStorageAdapter($bucket);
-            $filesystem = new Filesystem($adapter);
-    
+     
             // Přeformátování pole $_FILES pro podporu jednoho i více souborů
             if (!is_array($files['name'])) {
                 $files = [
@@ -74,25 +64,11 @@ class UploadedFile extends Model {
                 $normalizedFileName = self::normalizeFileName($name);
                 $fileName = uniqid() . '-' . $normalizedFileName;
                 $filePath = $_SERVER['domain']['gc_slozka'] . $fileName;
-    
-                // Otevření streamu pro nahrávání
-                $stream = fopen($tempPath, 'r+');
-                if ($stream === false) {
-                    throw new Exception("Unable to open file stream for '{$name}'.");
-                }
-    
-                // Nahrání souboru na Google Cloud Storage
-                $result = $filesystem->writeStream($filePath, $stream, ['visibility' => 'public']);
-                if ($result === false) {
-                    throw new Exception("Failed to upload file '{$name}' to Google Cloud Storage.");
-                }
-    
-                // Zavření streamu
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
+                $folderPath = $_SERVER['domain']['gc_slozka'];
+                
+                self::saveFileToGoogleCloud($tempPath, $fileName, $filePath,$folderPath);
 
-                $publicUrl = "https://storage.googleapis.com/{$bucketName}/{$filePath}";
+                $publicUrl = "https://storage.googleapis.com/".$_SERVER['domain']['gc_bucket_name']."/{$filePath}";
                 $alt = $title = $normalizedFileName;
     
                 // Uložení informací o souboru do databáze
@@ -108,6 +84,13 @@ class UploadedFile extends Model {
                 $uploadedFile->public_url = $publicUrl;
                 $uploadedFile->status = 'development';
                 $uploadedFile->save();
+
+                $originalImageId = $uploadedFile->id;
+            
+                // Generování a nahrávání miniatur, pokud je soubor obrázek
+                if (in_array(strtolower(pathinfo($name, PATHINFO_EXTENSION)), ['jpeg', 'jpg', 'png', 'gif'])) {
+                    self::generateAndUploadThumbnails($tempPath, $name, $userId, $_SERVER["SITE_ID"], $originalImageId);
+                }
             }
     
             // Vrácení úspěchu
@@ -147,6 +130,105 @@ class UploadedFile extends Model {
         $filename = preg_replace('/[^A-Za-z0-9.\-_]/', '_', $filename);
         
         return $filename;
+    }
+
+    protected static function generateAndUploadThumbnails($tempPath, $name, $originalImageId) {
+        $dimensions = self::getDimensionsFromServerVariables();
+    
+        // Vytvoření instance ImageManager s GD driverem
+        // Můžete alternativně použít 'imagick', pokud je to preferované
+        $manager = new ImageManager(new GdDriver());
+    
+        foreach ($dimensions as $prefix => $dim) {
+            $normalizedFileName = self::normalizeFileName($name);
+            $thumbnailFileName = uniqid() .  $normalizedFileName ."_".$prefix. '.webp';
+            $thumbnailPath = $_SERVER['domain']['gc_slozka'] ."_thumb/". $thumbnailFileName;
+            $folderPath = $_SERVER['domain']['gc_slozka'] ."_thumb/";
+            $thumbnailPublicUrl = "https://storage.googleapis.com/".$_SERVER['domain']['gc_bucket_name']."/{$thumbnailPath}";
+    
+            // Změna velikosti
+            $image = $manager->read($tempPath)->resize($dim['w'], $dim['h'], function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+
+            // Provedení enkódování do formátu WEBP
+            $encodedImage = $image->toWebp(60);
+
+            // Uložení upraveného obrázku do dočasného souboru
+            $tempFile = tempnam(sys_get_temp_dir(), 'webp');
+            file_put_contents($tempFile, $encodedImage);
+    
+            // Nahrání miniatury do Google Cloud Storage
+            self::saveFileToGoogleCloud($tempFile, $thumbnailFileName, $thumbnailPath, $folderPath);
+
+            // Odstranění dočasného souboru
+            unlink($tempFile);
+    
+            // Uložení informací o miniatuře do databáze
+            $variant = new ImageVariant();
+            $variant->original_image_id = $originalImageId;
+            $variant->variant_name = $prefix;
+            $variant->image_name = $thumbnailFileName;
+            $variant->width = $dim['w'];
+            $variant->height = $dim['h'];
+            $variant->public_url = $thumbnailPublicUrl;
+            $variant->save();
+        }
+    }
+
+    protected static function getDimensionsFromServerVariables() {
+        $dimensions = [];
+        foreach ($_SERVER['domain'] as $key => $value) {
+            if (preg_match('/(.+)_w$/', $key, $matches) && isset($_SERVER['domain'][$matches[1] . '_h'])) {
+                $prefix = $matches[1];
+                $dimensions[$prefix] = [
+                    'w' => $_SERVER['domain'][$prefix . '_w'],
+                    'h' => $_SERVER['domain'][$prefix . '_h'],
+                ];
+            }
+        }
+        return $dimensions;
+    }
+    
+        
+    /**
+     * saveFileToGoogleCloud
+     *
+     * @param  mixed $file - dočasný soubor (tmp file)
+     * @param  mixed $fileName - název souboru
+     * @param  mixed $filePath - plná cesta souboru na google cloud
+     * @param  mixed $folderPath - pouze cesta k souboru
+     * @return void
+     */
+    protected static function saveFileToGoogleCloud($file, $fileName, $filePath, $folderPath){
+        // Inicializace Google Cloud Storage klienta a Filesystem
+        $storageClient = new StorageClient([
+            'projectId' => $_SERVER['domain']['gc_project_id'],
+            'keyFilePath' => $_SERVER['domain']['gc_key_json'],
+        ]);
+
+        $bucket = $storageClient->bucket($_SERVER['domain']['gc_bucket_name']);
+        $adapter = new GoogleCloudStorageAdapter($bucket);
+        $filesystem = new Filesystem($adapter);
+
+        // Otevření streamu pro nahrávání
+        $stream = fopen($file, 'r+');
+        if ($stream === false) {
+            throw new Exception("Unable to open file stream for '{$fileName}'.");
+        }
+
+        // Nahrání souboru na Google Cloud Storage
+        $result = $filesystem->writeStream($filePath, $stream, ['visibility' => 'public']);
+        if ($result === false) {
+            throw new Exception("Failed to upload file '{$fileName}' to Google Cloud Storage.");
+        }
+
+        // Zavření streamu
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+        return true;
     }
 
 }

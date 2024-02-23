@@ -25,7 +25,6 @@ use linkcms1\adminControl;
 use linkcms1\Models\UserDetails;
 
 
-
 //******************** Vytvoření loggeru
 $logger = new Logger('linkcms');
 // Nastavení rotačního handleru pro logování úrovní NOTICE a INFO

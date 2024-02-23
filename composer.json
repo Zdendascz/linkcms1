@@ -23,12 +23,12 @@
         "tracy/tracy": "^2.10",
         "twig/twig": "^3.8",
         "illuminate/database": "^10.39",
-        "intervention/image": "^3.2",
         "vendor/linkcmslib": "dev-master",
         "vlucas/phpdotenv": "^5.6",
         "league/flysystem": "^3.24",
         "google/cloud-storage": "^1.37",
-        "league/flysystem-google-cloud-storage": "^3.23"
+        "league/flysystem-google-cloud-storage": "^3.23",
+        "intervention/image": "^3.4"
     },
     "repositories": [
         {
