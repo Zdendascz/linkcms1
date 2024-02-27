@@ -519,5 +519,11 @@ class Category extends Model
             return ['status' => true, 'message' => 'Nová URL úspěšně vytvořena.'];
         }
     }
+
+    public function images()
+    {
+        return $this->morphToMany(UploadedFile::class, 'imageable', 'imageables', 'imageable_id', 'image_id')
+                    ->withPivot('imageable_type');
+    }
 }
 ?>

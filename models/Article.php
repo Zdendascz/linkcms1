@@ -322,6 +322,12 @@ class Article extends Model {
             ];
         });
     }
+
+    public function images()
+    {
+        return $this->morphToMany(UploadedFile::class, 'imageable', 'imageables', 'imageable_id', 'image_id')
+                    ->withPivot('imageable_type');
+    }
 }
 
 ?>

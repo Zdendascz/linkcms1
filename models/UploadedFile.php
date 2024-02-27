@@ -83,13 +83,18 @@ class UploadedFile extends Model {
                 $uploadedFile->title = $title;
                 $uploadedFile->public_url = $publicUrl;
                 $uploadedFile->status = 'development';
-                $uploadedFile->save();
+                if($uploadedFile->save()){
 
                 $originalImageId = $uploadedFile->id;
+                echo $originalImageId;
+                }
+                else{
+                    die("problém s nahráváním");
+                }
             
                 // Generování a nahrávání miniatur, pokud je soubor obrázek
                 if (in_array(strtolower(pathinfo($name, PATHINFO_EXTENSION)), ['jpeg', 'jpg', 'png', 'gif'])) {
-                    self::generateAndUploadThumbnails($tempPath, $name, $userId, $_SERVER["SITE_ID"], $originalImageId);
+                    self::generateAndUploadThumbnails($tempPath, $name, $originalImageId);
                 }
             }
     
@@ -129,8 +134,14 @@ class UploadedFile extends Model {
         // Odstranění všech znaků kromě alfanumerických a některých dalších povolených znaků
         $filename = preg_replace('/[^A-Za-z0-9.\-_]/', '_', $filename);
         
+        // Zkrácení názvu souboru na maximálně 50 znaků, pokud je potřeba
+        if (strlen($filename) > 50) {
+            $filename = substr($filename, 0, 50);
+        }
+        
         return $filename;
     }
+    
 
     protected static function generateAndUploadThumbnails($tempPath, $name, $originalImageId) {
         $dimensions = self::getDimensionsFromServerVariables();
@@ -229,6 +240,51 @@ class UploadedFile extends Model {
             fclose($stream);
         }
         return true;
+    }
+
+    public function articles()
+    {
+        return $this->morphedByMany(Article::class, 'imageable', 'imageables', 'image_id', 'imageable_id')
+                    ->withPivot('imageable_type');
+    }
+
+    public function categories()
+    {
+        return $this->morphedByMany(Category::class, 'imageable', 'imageables', 'image_id', 'imageable_id')
+                    ->withPivot('imageable_type');
+    }
+
+    public static function getAllFilesWithVariants($type = false)
+    {
+        $query = self::with('variants');
+        if ($type == 'image') {
+            $query->where('mime_type', 'like', 'image/%');
+        } elseif ($type === 'file') {
+            $query->where('mime_type', 'not like', 'image/%');
+        }
+        else{
+            \Tracy\Debugger::barDump('Neznámý typ "'.$type.'" pro výběr obsahu');
+        }
+
+        $filesWithVariants = $query->get()->map(function ($file) {
+            $variantsTransformed = [];
+
+            foreach ($file->variants as $variant) {
+                $variantsTransformed[$variant->variant_name] = $variant->toArray();
+            }
+
+            $file = $file->toArray();
+            $file['variants'] = $variantsTransformed;
+
+            return $file;
+        });
+
+        return $filesWithVariants->toArray();
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(ImageVariant::class, 'original_image_id');
     }
 
 }

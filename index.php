@@ -331,6 +331,7 @@ switch ($routeInfo[0]) {
                     $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
                     $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $pageData["allImages"] = UploadedFile::getAllFilesWithVariants("image");
                     $templateDir = "templates/admin/";
                     $renderPage = "fileUpload.twig";
                     break;

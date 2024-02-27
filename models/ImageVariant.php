@@ -20,7 +20,7 @@ class ImageVariant extends Model
      */
     public function originalImage()
     {
-        return $this->belongsTo('YourNamespace\Models\Image', 'original_image_id');
+        return $this->belongsTo('linkcms1\Models\Image', 'original_image_id');
     }
 }
 ?>
