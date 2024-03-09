@@ -86,7 +86,6 @@ class UploadedFile extends Model {
                 if($uploadedFile->save()){
 
                 $originalImageId = $uploadedFile->id;
-                echo $originalImageId;
                 }
                 else{
                     die("problém s nahráváním");
@@ -285,6 +284,28 @@ class UploadedFile extends Model {
     public function variants()
     {
         return $this->hasMany(ImageVariant::class, 'original_image_id');
+    }
+
+    public function handleCKEditorUploadRequest() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['upload'])) { // CKEditor očekává pole s názvem 'upload'
+            // Předání pole souborů z $_FILES do metody uploadFiles a získání výsledku
+            $result = UploadedFile::uploadFiles($_FILES['upload']); // Upravte 'upload' podle potřeby
+    
+            header('Content-Type: application/json'); // Nastavení hlavičky pro odpověď ve formátu JSON
+    
+            if ($result['success']) {
+                // Pokud bylo nahrávání úspěšné, vrátit URL k nahrávanému obrázku ve formátu očekávaném CKEditorem
+                echo json_encode(['uploaded' => 1, 'fileName' => $result['name'], 'url' => $result['public_url']]);
+            } else {
+                // Pokud došlo k chybě, vrátit informace o chybě
+                echo json_encode(['uploaded' => 0, 'error' => ['message' => $result['message']]]);
+            }
+            exit;
+        } else {
+            // Pokud data nebyla odeslána metodou POST, vrátit chybovou zprávu ve formátu JSON
+            echo json_encode(['uploaded' => 0, 'error' => ['message' => 'Invalid request or file upload error.']]);
+            exit;
+        }
     }
 
 }

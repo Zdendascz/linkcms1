@@ -5,10 +5,12 @@ use PDO;
 use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Database\Eloquent\Model;
 use linkcms1\Models\ArticleCategory;
+use linkcms1\Models\ArticleImage;
 use linkcms1\Models\Url;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 use Tracy\Debugger;
 
 Debugger::enable(Debugger::DEVELOPMENT);
@@ -55,6 +57,18 @@ class Article extends Model {
         return json_decode($value, true);
     }
 
+    // Příklad nastavení loggeru (toto by se obvykle dělo mimo tuto metodu)
+    public static $logger = null;
+
+    public static function getLogger()
+    {
+        if (self::$logger === null) {
+            self::$logger = new Logger('linkcms');
+            self::$logger->pushHandler(new StreamHandler(__DIR__.'/../logs/error.log', Logger::DEBUG));
+        }
+        return self::$logger;
+    }
+
     /**
      * Uloží nebo aktualizuje článek a jeho kategorie.
      * @param array $data Data článku.
@@ -66,12 +80,13 @@ class Article extends Model {
     
         try {
             $body = $data['body'];
-            $body = str_replace("<pre>","",$body);
-            $body = str_replace("</pre>","",$body);
+            $body = str_replace("<pre>", "", $body);
+            $body = str_replace("</pre>", "", $body);
             $body = preg_replace('/<form[^>]*>/', '', $body);
             $body = preg_replace('/<\/form>/', '', $body);
             $body = htmlspecialchars($body);
-            $article = self::updateOrCreate(
+
+            $article = Article::updateOrCreate(
                 ['id' => $data['id'] ?? null], // Klíče pro vyhledání
                 [
                     'title' => $data['title'],
@@ -95,8 +110,24 @@ class Article extends Model {
                 $article->categories()->sync($data['categories']);
             }
     
+            // Zpracování obrázků
+            if (!empty($data['selectedImageId1'])) {
+                $article->assignImage($data['selectedImageId1'], 'articleDetail');
+            }
+            if (!empty($data['selectedImageId2'])) {
+                $article->assignImage($data['selectedImageId2'], 'articles');
+            }
+            if (!empty($data['selectedImageIds3'])) {
+                $galleryImageIds = explode(',', $data['selectedImageIds3']); // Předpokládáme, že ID jsou oddělená čárkou
+                foreach ($galleryImageIds as $fileId) {
+                    if (!empty(trim($fileId))) {
+                        $article->assignImage(trim($fileId), 'gallery');
+                    }
+                }
+            }
+    
             // Zpracování URL pouze pokud se jedná o nový článek
-            if (empty($data['id'])) { // Pokud není nastaveno ID, jedná se o nový článek
+            if (empty($data['id'])) {
                 $safeTitle = self::createSafeTitle($data['title']); // Implementujte podle vašich pravidel
                 $urlPath = '/' . $safeTitle; // Příklad, jak by mohla URL vypadat
                 $urlProcessResult = self::processUrlForArticle($article, $urlPath);
@@ -240,6 +271,14 @@ class Article extends Model {
                 $article->meta = []; // Přiřaďte prázdné pole, pokud je 'meta' null
             }
             // Pokud 'meta' už je pole, nic se neděje
+    
+            // Získání dat o souborech a obrázcích pro aktuální článek
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+    
+            // Přidání informací o souborech a obrázcích k článku
+            $article->files = $filesAndImages['files'];
+            $article->images = $filesAndImages['images'];
+    
             return $article;
         });
     
@@ -253,10 +292,12 @@ class Article extends Model {
      * @return array Data článku
      */
     public static function getArticleDetails($id) {
-        $article = self::with(['author', 'categories', 'url'])
-            ->where('id', $id)
-            ->first();
-            Debugger::barDump($id, 'ID článku');
+        $article = self::with(['author', 'categories', 'url', 'images' => function($query) {
+            // Předpokládáme, že je třeba explicitně načíst data obrázků
+            $query->where('imageable_type', Article::class);
+        }])
+        ->where('id', $id)
+        ->first();
         if (!$article) {
             return null; // Nebo vhodná reakce v případě, že článek není nalezen
         }
@@ -275,6 +316,9 @@ class Article extends Model {
         $basePath = $_SERVER["BASE_PATH"] ?? ''; // Předpokládá, že BASE_PATH je definováno, jinak prázdný řetězec
         $articlePath = optional($article->url)->url;
         $fullUrl = $protocol . $host . $basePath . $articlePath;
+
+        // Získání obrázků a souborů připojených k článku
+        $filesAndImages = self::getArticleFilesAndImages($id);
     
         $data = [
             'id' => $article->id,
@@ -295,6 +339,8 @@ class Article extends Model {
             'snippet' => $article->snippet,
             'status' => $article->status,
             'body' => htmlspecialchars_decode($article->body),
+            'files' => $filesAndImages['files'],
+            'images' => $filesAndImages['images'],
         ];
     
         return $data;
@@ -304,9 +350,15 @@ class Article extends Model {
     public function url() {
         return $this->hasOne(Url::class, 'model_id')->where('model', '=', 'articles');
     }
-
+    
+    /**
+     * getActiveArticlesByCategoryWithUrlAndAuthor
+     *
+     * @param  mixed $categoryId
+     * @return void
+     */
     function getActiveArticlesByCategoryWithUrlAndAuthor($categoryId) {
-        $articles = Article::with(['url', 'user'])
+        $articles = Article::with(['url', 'user', 'images.file'])
                     ->whereHas('categories', function ($query) use ($categoryId) {
                         $query->where('id', $categoryId);
                     })
@@ -314,13 +366,143 @@ class Article extends Model {
                     ->get();
     
         return $articles->map(function ($article) {
-            return [
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+            $articleData = [
                 'id' => $article->id,
                 'title' => $article->title,
                 'url' => $article->url ? $article->url->url : null,
-                'author_name' => $article->user ? $article->user->name : 'Unknown', // Předpokládejme, že uživatel má atribut 'name'
+                'author_name' => $article->user ? $article->user->name : 'Unknown',
+                'files' => $filesAndImages['files'], // Přidání dat o souborech
+                'images' => $filesAndImages['images'], // Přidání dat o obrázcích
             ];
+    
+            // Zde doplňte logiku pro naplnění 'files', pokud je potřeba
+            return $articleData;
         });
+    }
+
+    public static function getArticleFilesAndImages($articleId) {
+        // Získání souborů a obrázků připojených k článku
+        $articleImages = DB::table('article_images')
+                        ->join('uploaded_files', 'article_images.file_id', '=', 'uploaded_files.id')
+                        ->leftJoin('image_variants', function($join) {
+                            $join->on('article_images.file_id', '=', 'image_variants.original_image_id')
+                                 ->where('article_images.variant', '<>', 'file');
+                        })
+                        ->select('article_images.variant', 'article_images.order', 'uploaded_files.*', 'image_variants.*','uploaded_files.id as uploaded_file_id','image_variants.public_url as variant_public_url')
+                        ->where('article_id', $articleId)
+                        ->get();
+    
+        // Pole pro soubory
+        $files = [];
+    
+        // Asociativní pole pro obrázky
+        $images = ['images' => [], 'gallery' => []];
+    
+        foreach ($articleImages as $image) {
+            // Pokud je variant 'files', přidej do pole souborů
+            if ($image->variant === 'files') {
+                $files[] = (array) $image;
+            } else {
+                // Jinak zpracuj obrázek nebo galerii
+                if (!empty($image->variant_name)) {
+                    $varianta[$image->variant_name] = [
+                        'image_name' => $image->image_name,
+                        'width' => $image->width,
+                        'height' => $image->height,
+                        'public_url' => $image->variant_public_url
+                    ];
+                }
+                else
+                    $varianta = [];
+
+                $imageData = [
+                    'id' => $image->uploaded_file_id,
+                    'user_id' => $image->user_id,
+                    'site_id' => $image->site_id,
+                    'name' => $image->name,
+                    'file_path' => $image->file_path,
+                    'mime_type' => $image->mime_type,
+                    'size' => $image->size,
+                    'role' => $image->role,
+                    'status' => $image->status,
+                    'created_at' => $image->created_at,
+                    'updated_at' => $image->updated_at,
+                    'alt' => $image->alt,
+                    'title' => $image->title,
+                    'public_url' => $image->public_url,
+                    'varianta' => $varianta,
+                ];
+    
+                // Pokud je variant 'gallery', přidej do galerie podle pořadí
+                if ($image->variant === 'gallery') {
+                    $images['gallery'][$image->order] = $imageData;
+                } else {
+                    // Jinak přidej do pole obrázků podle varianty
+                    $images['images'][$image->variant] = $imageData;
+                }
+            }
+        }
+    
+        // Výstupní pole
+        $output = ['files' => $files, 'images' => $images];
+    
+        return $output;
+    }
+    
+    
+    
+    /**
+     * Přiřadí obrázek k článku podle zadané varianty. Pro 'articleDetail' a 'articles'
+     * smaže existující záznamy téže varianty a pro 'gallery' umožní více obrázků s automatickým
+     * nastavením pořadí.
+     *
+     * @param int $fileId ID souboru (obrázku)
+     * @param string $variant Typ varianty ('articleDetail', 'articles', 'gallery')
+     */
+    public function assignImage($fileId, $variant)
+    {
+        $logger = self::getLogger();
+        $logger->info("Bude se přidávat obrázek '{$fileId}' ve variantě '{$variant}' pro článek {$this->id}.");
+        $order = 1;
+        // Pro varianty 'articleDetail' a 'articles', smažte stávající obrázky stejné varianty
+        if (in_array($variant, ['articleDetail', 'articles'])) {
+            ArticleImage::where('article_id', $this->id)
+                        ->where('variant', $variant)
+                        ->delete();
+            $logger->info("Existující obrázky varianty '{$variant}' pro článek {$this->id} byly smazány.");
+        }
+
+        // Kontrola pro variantu "gallery" - zda už soubor s daným file_id není vložen
+        if ($variant === 'gallery') {
+            $existingImage = ArticleImage::where('article_id', $this->id)
+                                        ->where('variant', 'gallery')
+                                        ->where('file_id', $fileId)
+                                        ->first();
+            if ($existingImage) {
+                $logger->info("Obrázek s file ID: '{$fileId}' už je vložen v galerii článku {$this->id}, přidávání se přeskakuje.");
+                return; // Obrázek už existuje, ukončení funkce
+            }
+
+            // Pro 'gallery', zjistěte poslední pořadí a přidejte k němu jedničku
+            
+            $lastImage = ArticleImage::where('article_id', $this->id)
+                                    ->where('variant', 'gallery')
+                                    ->orderBy('order', 'desc')
+                                    ->first();
+            if ($lastImage) {
+                $order = $lastImage->order + 1;
+            }
+            $logger->info("Přidán nový obrázek do galerie pro článek {$this->id}, file ID: {$fileId}.");
+        }
+
+        // Vytvoření nového záznamu pro obrázek
+        ArticleImage::create([
+            'article_id' => $this->id,
+            'file_id' => $fileId,
+            'variant' => $variant,
+            'order' => $order,
+        ]);
     }
 
     public function images()

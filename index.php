@@ -177,6 +177,7 @@ $handlers = [
     "updateCategoryOrder" => "linkcms1\Models\Category",
     "getAllFilesBySiteId" => "linkcms1\Models\UploadedFile",
     "handleUploadRequest" => "linkcms1\Models\UploadedFile",
+    "handleCKEditorUploadRequest" => "linkcms1\Models\UploadedFile",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
@@ -292,6 +293,8 @@ switch ($routeInfo[0]) {
                     $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
                     $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $pageData["allImages"] = UploadedFile::getAllFilesWithVariants("image");
+                    $pageData["allFiles"] = UploadedFile::getAllFilesWithVariants("file");
                     $templateDir = "templates/admin/";
                     $renderPage = "addArticle.twig";
                     break;
@@ -319,6 +322,8 @@ switch ($routeInfo[0]) {
                     $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
                     $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
+                    $pageData["allImages"] = UploadedFile::getAllFilesWithVariants("image");
+                    $pageData["allFiles"] = UploadedFile::getAllFilesWithVariants("file");
                     $templateDir = "templates/admin/";
                     $renderPage = "allArticles.twig";
                     break;
@@ -332,6 +337,7 @@ switch ($routeInfo[0]) {
                     $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $pageData["allImages"] = UploadedFile::getAllFilesWithVariants("image");
+                    $pageData["allFiles"] = UploadedFile::getAllFilesWithVariants("file");
                     $templateDir = "templates/admin/";
                     $renderPage = "fileUpload.twig";
                     break;
@@ -482,7 +488,9 @@ $loader = new \Twig\Loader\FilesystemLoader($templateDir);
 $twig = new \Twig\Environment($loader, [
     //'cache' => '/templates/cache',
      'cache' => false, // Vypnout cache pro vývoj
+     'debug' => true,
 ]);
+$twig->addExtension(new \Twig\Extension\DebugExtension());
 
 echo $twig->render($renderPage, $variables);
 ?>
