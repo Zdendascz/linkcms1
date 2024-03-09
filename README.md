@@ -2,23 +2,6 @@
 
 Výhledově jeden z web builderů: VvvebJs / https://grapesjs.com/
 
-# ToDo
--   Správa url: selecty handleru a modelu nenačtou informace aktuálně z db a neoznačí je vždy, takže 
-    se občas přepíšou už vytvořené modely nebo handlery prázdnými
--   Pořád se občas při práci s kategoriemi správně neuloží údaje
--   Při práci s url mohu čísla u model_id nahradit názvy článků či kategorií
--   Plánovaní publikace obsahu
--   Řízení přesměrování
--   Správa medií
-    -   Odstranit soubory z nahrávacího pole po dokonční nahrávání (nebo ne?)
-    -   Vyřešit obsazenost diskové kvóty
-    -   Omezit jen na určité datové typy (obrázky, texťáky, pdf, komprimované)
-    -   Automaticky převádět obrázky na jiné formáty a rozměry
--   lépe vyřešit odstraňování diakritiky
--   ošetření duplicitní hodnoty při vytváření konfigurační proměnné
--   otestování, kde všude chybí kontrola proměnných
--   přidat placeholdery jako výchozí proměnné tam, kde jsou
-
 
 # FAQ
 ## Q: jak vytvořit novou url webu
@@ -46,3 +29,11 @@ A: Zatím to tak moc není, ale je tu myšlenka:
 ## Q: jak se řeší nastavení rozměrů obrázků
 A: Řeší se prostřednictvím konfigurace proměnných. Vždy jde o dvojici rozměrů s označením [nazevPromenne]_[w/h] Přičemž název 
 proměnné je typicky: banner, articles, articleDetail, galleryThumbanil ... Systém sám při nahrávání obrázků na google cloud vytvoří verze
+
+## Q: jaké jsou varianty obrázků:
+A: Platí, že rozměry všech variant se udávají v konfiguraci a mohou se měnit.
+    banner (1500x635) - úvodní banner nebo banner na home
+    articleDetail (1300x530) - obrázek v záhlaví detailu článku
+    galleryThumbnail (500x414) - náhledy galerie, menší varianta 200x200 se používá pro náhledy v administraci
+    articles (1000x486) - náhled v seznamu článků
+    gallery (1200x1200) - detail v galerii
