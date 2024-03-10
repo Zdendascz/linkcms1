@@ -6,3 +6,4 @@
 /logs/
 /templates/
 /data/
+*.properties
