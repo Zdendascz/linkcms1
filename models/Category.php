@@ -79,7 +79,7 @@ class Category extends Model
      * @param int|null $parentId ID nadřazené kategorie, nebo null pro kořenové kategorie
      * @return string HTML navigace
      */
-    public static function generateNavigation($siteId, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
+    public static function generateNavigation($siteId, $navigation_id, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
         $insertUl = "";
         if($ulClass) $insertUl .= " class='".$ulClass."'";
         if($ulId) $insertUl .= " id='".$ulId."'";
@@ -89,6 +89,7 @@ class Category extends Model
     
         $categories = self::where('parent_id', $parentId)
                            ->where('site_id', $siteId)
+                           ->where('navigation_id', $navigation_id)
                            ->where('is_active', 'active')
                            ->orderBy('order_cat', 'asc')
                            ->get();
@@ -104,7 +105,7 @@ class Category extends Model
             $html .= !empty($category->url) ? '<a href="' . htmlspecialchars($category->url) . '" ' . $aAttributes . '>' . htmlspecialchars($category->title) . '</a>' : htmlspecialchars($category->title);
     
             if (self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 1)->exists()) {
-                $childHtml = self::generateNavigation($siteId, $category->id);
+                $childHtml = self::generateNavigation($siteId, $navigation_id, $category->id);
                 $html .= $childHtml;
             }
     

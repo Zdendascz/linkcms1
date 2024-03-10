@@ -485,10 +485,10 @@ $premissions = [
 Tracy\Debugger::barDump($premissions, 'Oprávnění data');
 if(!isset($pageData)){$pageData = "";}
 
-//$getData = new linkcms1\Models\Url
+
 
 $variables = [
-    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], 1,$domainConfData["class_ul_navig"],$domainConfData["id_ul_nav"]), // zobrazení navigace
+    //'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], 1,$domainConfData["class_ul_navig"],$domainConfData["id_ul_nav"]), // zobrazení navigace
     'displayData' => $displayData, // data obsahu stránky
     'pageData' => $pageData, // informace o konkrétní stránce
     'domainData' => $domainData, //data o doméně
@@ -498,6 +498,16 @@ $variables = [
     'webNavigations' => $webNavigations,
     'get' => linkcms1\Models\Url::nactiBezpecneGetParametry()
 ];
+
+for($i=0;$i<count($webNavigations);$i++){
+    $variables['navigation'][$webNavigations[$i]["id"]] = Category::generateNavigation( $_SERVER["SITE_ID"],
+                                                                                        $webNavigations[$i]["id"], 
+                                                                                        1,
+                                                                                        $domainConfData["ulClassNav_".$webNavigations[$i]["id"]],
+                                                                                        $domainConfData["ulIdNav_".$webNavigations[$i]["id"]]);
+    
+    }
+
 Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
 Tracy\Debugger::barDump($admin->getUserData(), 'User data');
