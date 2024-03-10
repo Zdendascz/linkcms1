@@ -16,6 +16,7 @@ use Dotenv\Exception\InvalidPathException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use LinkCmsLib\User;
 use linkcms1\Models\Category;
+use linkcms1\Models\Url;
 use linkcms1\Models\UploadedFile;
 use linkcms1\Models\Article;
 use linkcms1\Models\SiteConfiguration;
@@ -163,6 +164,10 @@ foreach($_SERVER as $key => $value){
         $domainData[$key] = $value;
     }
 }
+
+//******************** Získání navigací webu */
+$navig = new linkcms1\Models\Navigation;
+$webNavigations = $navig->getNavigationsBySiteId($_SERVER["SITE_ID"]);
 
 //******************** Handlery pro routování, pole pro zpracování db
 $handlers = [
@@ -480,6 +485,8 @@ $premissions = [
 Tracy\Debugger::barDump($premissions, 'Oprávnění data');
 if(!isset($pageData)){$pageData = "";}
 
+//$getData = new linkcms1\Models\Url
+
 $variables = [
     'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], 1,$domainConfData["class_ul_navig"],$domainConfData["id_ul_nav"]), // zobrazení navigace
     'displayData' => $displayData, // data obsahu stránky
@@ -487,13 +494,16 @@ $variables = [
     'domainData' => $domainData, //data o doméně
     'userData' => $admin->getUserData(),
     'premissions' => $premissions,
-    'templateDir' => $templateDir
+    'templateDir' => $templateDir,
+    'webNavigations' => $webNavigations,
+    'get' => linkcms1\Models\Url::nactiBezpecneGetParametry()
 ];
 Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
 Tracy\Debugger::barDump($admin->getUserData(), 'User data');
 
 Tracy\Debugger::barDump($urlInfo, 'Url info');
+Tracy\Debugger::barDump($variables, 'Promnné');
 
 Tracy\Debugger::barDump($templateDir.$renderPage, 'Template');
 $loader = new \Twig\Loader\FilesystemLoader($templateDir);
