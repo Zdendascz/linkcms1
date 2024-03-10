@@ -283,7 +283,7 @@ switch ($routeInfo[0]) {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
-                    $pageData["allCats"] = $instance->getAllCategoriesTree($domainData["SITE_ID"]);
+                    $pageData["allCats"] = $instance->getAllCategoriesTree($domainData["SITE_ID"],$_GET["navigation_id"]);
                     $pageData["urlListToAdd"] = $instance->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
                     $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $templateDir = "templates/admin/";
@@ -341,9 +341,6 @@ switch ($routeInfo[0]) {
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
                     }
                     $catData = new linkcms1\Models\Category();
-                    $pageData["allCats"] = $catData->getAllCategoriesTree($domainData["SITE_ID"]);
-                    $pageData["urlListToAdd"] = $catData->getUrlsWithTitle($domainData["SITE_DOMAIN"]);
-                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain($vars[2]);
                     $pageData["allImages"] = UploadedFile::getAllFilesWithVariants("image");
                     $pageData["allFiles"] = UploadedFile::getAllFilesWithVariants("file");
                     $templateDir = "templates/admin/";
@@ -502,7 +499,7 @@ $variables = [
 for($i=0;$i<count($webNavigations);$i++){
     $variables['navigation'][$webNavigations[$i]["id"]] = Category::generateNavigation( $_SERVER["SITE_ID"],
                                                                                         $webNavigations[$i]["id"], 
-                                                                                        1,
+                                                                                        null,
                                                                                         $domainConfData["ulClassNav_".$webNavigations[$i]["id"]],
                                                                                         $domainConfData["ulIdNav_".$webNavigations[$i]["id"]]);
     

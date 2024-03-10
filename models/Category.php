@@ -79,20 +79,28 @@ class Category extends Model
      * @param int|null $parentId ID nadřazené kategorie, nebo null pro kořenové kategorie
      * @return string HTML navigace
      */
-    public static function generateNavigation($siteId, $navigation_id, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
+    public static function generateNavigation($siteId, $navigation_id=null, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
         $insertUl = "";
         if($ulClass) $insertUl .= " class='".$ulClass."'";
         if($ulId) $insertUl .= " id='".$ulId."'";
         if($ulStyle) $insertUl .= " style='".$ulStyle."'";
         
         $html = '<ul '.$insertUl.'>';
-    
-        $categories = self::where('parent_id', $parentId)
+        if($navigation_id <> null){
+            $categories = self::where('parent_id', $parentId)
+                            ->where('site_id', $siteId)
+                            ->where('navigation_id', $navigation_id)
+                            ->where('is_active', 'active')
+                            ->orderBy('order_cat', 'asc')
+                            ->get();
+        }
+        else{
+            $categories = self::where('parent_id', $parentId)
                            ->where('site_id', $siteId)
-                           ->where('navigation_id', $navigation_id)
                            ->where('is_active', 'active')
                            ->orderBy('order_cat', 'asc')
                            ->get();
+        }
     
         foreach ($categories as $category) {
             // Dekódování JSON a příprava atributů
@@ -104,8 +112,8 @@ class Category extends Model
             $html .= '<li ' . $liAttributes . '>';
             $html .= !empty($category->url) ? '<a href="' . htmlspecialchars($category->url) . '" ' . $aAttributes . '>' . htmlspecialchars($category->title) . '</a>' : htmlspecialchars($category->title);
     
-            if (self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 1)->exists()) {
-                $childHtml = self::generateNavigation($siteId, $navigation_id, $category->id);
+            if (self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 'active')->exists()) {
+                $childHtml = self::generateNavigation($siteId, null, $category->id);
                 $html .= $childHtml;
             }
     
@@ -198,11 +206,20 @@ class Category extends Model
 
     }
 
-    public static function getAllCategoriesTree($siteId) {
-        $categories = self::where('site_id', $siteId)
+    public static function getAllCategoriesTree($siteId,$navigation_id=false) {
+        if($navigation_id <> false){
+            $categories = self::where('site_id', $siteId)
+                               ->where('navigation_id', $navigation_id)
+                               ->orderBy('parent_id', 'asc')
+                               ->orderBy('order_cat', 'asc')
+                               ->get();
+        }
+        else{
+            $categories = self::where('site_id', $siteId)
                            ->orderBy('parent_id', 'asc')
                            ->orderBy('order_cat', 'asc')
                            ->get();
+        }
         
         $categoriesById = [];
         foreach ($categories as $category) {
@@ -285,6 +302,7 @@ class Category extends Model
         
         $category->is_active = $data['is_active'] ?? 1;
         $category->site_id = $data['site_id'];
+        $category->navigation_id = $data['navigation_id'];
         $category->url = $data['url_manual'] ?? null;
         $category->css_cat = json_encode([
             'a_class' => $data['a_class'] ?? '',
