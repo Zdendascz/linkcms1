@@ -51,7 +51,8 @@ class Category extends Model
         'site_id',
         'order_cat',
         'url',
-        'css'
+        'css',
+        'navigation_id'
     ];
 
     protected $casts = [

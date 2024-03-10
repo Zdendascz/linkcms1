@@ -23,6 +23,7 @@ use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
 use linkcms1\Models\UserDetails;
+use linkcms1\Models\Navigation;
 
 
 //******************** Vytvoření loggeru
@@ -180,6 +181,8 @@ $handlers = [
     "handleCKEditorUploadRequest" => "linkcms1\Models\UploadedFile",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
+    "getNavigationsBySiteId" => "linkcms1\Models\Navigation",
+    "handleSaveOrUpdateNavigation" => "linkcms1\Models\Navigation",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
@@ -352,6 +355,15 @@ switch ($routeInfo[0]) {
                     $renderPage = "superOpravneni.twig";
                     break;
                 }
+                case 'adminNavigations' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["navigations"] = Navigation::getNavigationsBySiteId($domainData["SITE_ID"]);
+                    $templateDir = "templates/admin/";
+                    $renderPage = "addNavig.twig";
+                    break;
+                }
                 case 'superAdminUrlAdd' : {
                     if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
@@ -469,7 +481,7 @@ Tracy\Debugger::barDump($premissions, 'Oprávnění data');
 if(!isset($pageData)){$pageData = "";}
 
 $variables = [
-    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], null,"navigation clearfix"), // zobrazení navigace
+    'navigation' => Category::generateNavigation( $_SERVER["SITE_ID"], 1,$domainConfData["class_ul_navig"],$domainConfData["id_ul_nav"]), // zobrazení navigace
     'displayData' => $displayData, // data obsahu stránky
     'pageData' => $pageData, // informace o konkrétní stránce
     'domainData' => $domainData, //data o doméně
