@@ -12,6 +12,7 @@ use PHPAuth\Auth as PHPAuth;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Tracy\Debugger;
+use DateTime;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 $dbh = new PDO(
@@ -36,7 +37,10 @@ class Article extends Model {
         'body',
         'author_id',
         'meta', // Poznámka: Toto pole bude automaticky konvertováno na a z JSON.
-        'status'
+        'status',
+        'publish_at',
+        'publish_end_at',
+        'manual_update_at'
     ];
 
     protected $casts = [
@@ -86,6 +90,53 @@ class Article extends Model {
             $body = preg_replace('/<\/form>/', '', $body);
             $body = htmlspecialchars($body);
 
+            $publishAtInput = $data['publish_at'] ?? null;
+            $publishEndAtInput = $data['publish_end_at'] ?? null;
+            $modifiedAtInput = $data['modified_at'] ?? null;
+
+            // Přeformátování 'publish_at'
+            $publishAt = null;
+            if (!empty($publishAtInput)) {
+                $publishAtDateTime = DateTime::createFromFormat('Y-m-d\TH:i', $publishAtInput);
+                if ($publishAtDateTime) {
+                    $publishAt = $publishAtDateTime->format('Y-m-d H:i:s');
+                }
+            }
+
+            // Přeformátování 'publish_end_at'
+            $publishEndAt = null;
+            if (!empty($publishEndAtInput)) {
+                $publishEndAtDateTime = DateTime::createFromFormat('Y-m-d\TH:i', $publishEndAtInput);
+                if ($publishEndAtDateTime) {
+                    $publishEndAt = $publishEndAtDateTime->format('Y-m-d H:i:s');
+                }
+            }
+
+            $status = $data['status']; // Předpokládá se, že status je již načten z $data
+
+            // Nastavení publish_at na aktuální čas, pokud je status 'active' a publish_at je prázdné
+            if ($status === 'active' && empty($publishAtInput)) {
+                $publishAt = date('Y-m-d H:i:s'); // Aktuální čas ve správném formátu
+            } else {
+                $publishAt = !empty($publishAtInput) ? DateTime::createFromFormat('Y-m-d\TH:i', $publishAtInput)->format('Y-m-d H:i:s') : null;
+            }
+
+            // Nastavení publish_end_at na aktuální čas, pokud je status 'suspend', publish_at je v minulosti a publish_end_at je prázdné
+            if ($status === 'suspend' && !empty($publishAt) && new DateTime($publishAt) < new DateTime() && empty($publishEndAtInput)) {
+                $publishEndAt = date('Y-m-d H:i:s'); // Aktuální čas ve správném formátu
+            } else {
+                $publishEndAt = !empty($publishEndAtInput) ? DateTime::createFromFormat('Y-m-d\TH:i', $publishEndAtInput)->format('Y-m-d H:i:s') : null;
+            }
+
+            // Přeformátování 'modified_at'
+            $modifiedAt = null;
+            if (!empty($modifiedAtInput)) {
+                $modifiedAtDateTime = DateTime::createFromFormat('Y-m-d\TH:i', $modifiedAtInput);
+                if ($modifiedAtDateTime) {
+                    $modifiedAt = $modifiedAtDateTime->format('Y-m-d H:i:s');
+                }
+            }
+
             $article = Article::updateOrCreate(
                 ['id' => $data['id'] ?? null], // Klíče pro vyhledání
                 [
@@ -101,7 +152,10 @@ class Article extends Model {
                         'keywords' => $data['meta']['keywords'] ?? '',
                         'content_typ' => $data['meta']['content_typ'] ?? '',
                     ]),
-                    'status' => $data['status']
+                    'publish_at' => $publishAt,
+                    'publish_end_at' => $publishEndAt,
+                    'manual_update_at' => $modifiedAt,
+                    'status' => $status
                 ]
             );
     
@@ -319,6 +373,12 @@ class Article extends Model {
 
         // Získání obrázků a souborů připojených k článku
         $filesAndImages = self::getArticleFilesAndImages($id);
+
+        // Převod řetězců na objekty DateTime a formátování
+        $publishAt = !empty($article->publish_at) ? (new DateTime($article->publish_at))->format('Y-m-d\TH:i') : '';
+        $publishEndAt = !empty($article->publish_end_at) ? (new DateTime($article->publish_end_at))->format('Y-m-d\TH:i') : '';
+        $lastModifiedAt = !empty($article->last_modified_at) ? (new DateTime($article->last_modified_at))->format('Y-m-d\TH:i') : '';
+
     
         $data = [
             'id' => $article->id,
@@ -341,6 +401,9 @@ class Article extends Model {
             'body' => htmlspecialchars_decode($article->body),
             'files' => $filesAndImages['files'],
             'images' => $filesAndImages['images'],
+            'publish_at' => $publishAt,
+            'publish_end_at' => $publishEndAt,
+            'last_modified_at' => $lastModifiedAt,
         ];
     
         return $data;
