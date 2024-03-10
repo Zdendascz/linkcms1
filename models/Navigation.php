@@ -93,7 +93,7 @@ class Navigation extends Model
      */
     public static function getNavigationsBySiteId($siteId)
     {
-        return self::where('site_id', $siteId)->get();
+        return self::where('site_id', $siteId)->get()->toArray();
     }
 }
 
