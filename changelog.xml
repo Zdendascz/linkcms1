@@ -1,0 +1,571 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="Intel (generated)" id="1710115265958-1">
+        <createTable tableName="article_categories">
+            <column name="article_id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="category_id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-2">
+        <createTable tableName="article_images">
+            <column name="article_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="variant" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="order" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-3">
+        <createTable tableName="articles">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subtitle" type="VARCHAR(255)"/>
+            <column name="short_text" type="VARCHAR(255)"/>
+            <column name="snippet" type="TEXT"/>
+            <column name="body" type="TEXT"/>
+            <column defaultValueComputed="NULL" name="user_id" type="INT UNSIGNED"/>
+            <column name="meta" type="LONGTEXT"/>
+            <column name="status" type="ENUM('development', 'active', 'suspend')">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp"/>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="deleted_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="publish_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="manual_update_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="publish_end_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-4">
+        <createTable tableName="categories">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="top_text" type="TEXT"/>
+            <column name="bottom_text" type="TEXT"/>
+            <column name="meta" type="LONGTEXT"/>
+            <column defaultValueComputed="NULL" name="parent_id" type="INT UNSIGNED"/>
+            <column defaultValue="development" name="is_active" type="ENUM('suspend', 'active', 'development', '')">
+                <constraints nullable="false"/>
+            </column>
+            <column name="site_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="order_cat" remarks="položky se řasí shora dolů" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" remarks="celá url na kterou kategorie odkazuje" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="css_cat" type="LONGTEXT"/>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp"/>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="deleted_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="navigation_id" type="INT UNSIGNED"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-5">
+        <createTable tableName="configurations_definitions">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="key" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="ENUM('text', 'number', 'enum')">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_value" type="VARCHAR(255)"/>
+            <column name="editable_by_role" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-6">
+        <createTable tableName="image_variants">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="original_image_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="variant_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="image_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="width" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="height" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="public_url" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-7">
+        <createTable tableName="imageables">
+            <column name="image_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="imageable_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="imageable_type" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-8">
+        <createTable tableName="navigations">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="name" remarks="Název navigace" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" remarks="Popis navigace" type="TEXT"/>
+            <column name="site_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-9">
+        <createTable tableName="permissions">
+            <column name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-10">
+        <createTable tableName="phpauth_attempts">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="ip" type="CHAR(39)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expiredate" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-11">
+        <createTable tableName="phpauth_config">
+            <column name="setting" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="value" type="VARCHAR(100)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-12">
+        <createTable tableName="phpauth_emails_banned">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="domain" type="VARCHAR(100)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-13">
+        <createTable tableName="phpauth_requests">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uid" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="CHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expire" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="ENUM('activation', 'reset')">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-14">
+        <createTable tableName="phpauth_sessions">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uid" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hash" type="CHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expiredate" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ip" type="VARCHAR(39)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="device_id" type="VARCHAR(36)"/>
+            <column name="agent" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cookie_crc" type="CHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-15">
+        <createTable tableName="phpauth_users">
+            <column autoIncrement="true" name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="email" type="VARCHAR(100)"/>
+            <column name="password" type="VARCHAR(255)"/>
+            <column defaultValueComputed="0" name="isactive" type="TINYINT(1)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="dt" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-16">
+        <createTable tableName="role_permissions">
+            <column name="role_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="permission_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-17">
+        <createTable tableName="roles">
+            <column name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-18">
+        <createTable tableName="site_configurations">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="site_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="TEXT"/>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-19">
+        <createTable tableName="sites">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="domain" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp"/>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp"/>
+            <column name="user_id" remarks="id vlastníka stránky" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="development" name="active" remarks="jednotlivé stavy webu" type="ENUM('development', 'active', 'suspend')">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tarif_id" remarks="id vybraného tarifu" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_dir" remarks="cesta k adresáři šablon" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="language" remarks="jazyk stránky" type="VARCHAR(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="configurations" remarks="konfigurační data" type="LONGTEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="analytics" remarks="data pro jednotlivé analytické nástroje" type="LONGTEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" remarks="poznámky" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="head_code" remarks="zdroják vkládaný do hlavičky" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="post_body_code" remarks="zdroják vkládaný hned po body" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pre_end_body_code" remarks="html kód umístěný před konec body" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-20">
+        <createTable tableName="uploaded_files">
+            <column autoIncrement="true" name="id" type="BIGINT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="user_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="site_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_path" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mime_type" type="VARCHAR(50)"/>
+            <column defaultValueComputed="NULL" name="size" type="BIGINT UNSIGNED"/>
+            <column name="role" type="VARCHAR(255)"/>
+            <column defaultValue="development" name="status" type="ENUM('active', 'development', 'hidden', 'suspend', 'deleted')">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="alt" type="VARCHAR(255)"/>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="public_url" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-21">
+        <createTable tableName="urls">
+            <column autoIncrement="true" name="id" type="INT UNSIGNED">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="domain" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="handler" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model" remarks="název modelu k němuž se url váže" type="VARCHAR(255)"/>
+            <column defaultValueComputed="NULL" name="model_id" remarks="id položky daného modelu" type="INT UNSIGNED"/>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp"/>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp"/>
+            <column defaultValueComputed="NULL" name="deleted_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-22">
+        <createTable tableName="user_details">
+            <column name="user_id" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fullname" type="VARCHAR(255)"/>
+            <column name="phone" type="VARCHAR(50)"/>
+            <column name="address" type="TEXT"/>
+            <column name="city" type="VARCHAR(100)"/>
+            <column name="country" type="VARCHAR(100)"/>
+            <column name="postal_code" type="VARCHAR(20)"/>
+            <column name="additional_info" type="TEXT"/>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-23">
+        <createTable tableName="user_site_roles">
+            <column name="user_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="site_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="INT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-24">
+        <createTable tableName="users">
+            <column name="id" type="INT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column defaultValueComputed="current_timestamp()" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="current_timestamp() on update current_timestamp()" name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="login" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="email" type="VARCHAR(255)">
+                <constraints unique="true"/>
+            </column>
+            <column name="phone" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-25">
+        <createIndex associatedWith="" indexName="category_id" tableName="article_categories">
+            <column name="category_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-26">
+        <createIndex associatedWith="" indexName="config_id" tableName="site_configurations">
+            <column name="config_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-27">
+        <createIndex associatedWith="" indexName="email" tableName="phpauth_users">
+            <column name="email"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-28">
+        <createIndex associatedWith="" indexName="idx_site_id" tableName="navigations">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-29">
+        <createIndex associatedWith="" indexName="image_id" tableName="imageables">
+            <column name="image_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-30">
+        <createIndex associatedWith="" indexName="imageable_id" tableName="imageables">
+            <column name="imageable_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-31">
+        <createIndex associatedWith="" indexName="imageable_type" tableName="imageables">
+            <column name="imageable_type"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-32">
+        <createIndex associatedWith="" indexName="ip" tableName="phpauth_attempts">
+            <column name="ip"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-33">
+        <createIndex associatedWith="" indexName="navigation_id" tableName="categories">
+            <column defaultValueComputed="NULL" name="navigation_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-34">
+        <createIndex associatedWith="" indexName="site_id" tableName="site_configurations">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-35">
+        <createIndex associatedWith="" indexName="site_id" tableName="uploaded_files">
+            <column name="site_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-36">
+        <createIndex associatedWith="" indexName="token" tableName="phpauth_requests">
+            <column name="token"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-37">
+        <createIndex associatedWith="" indexName="type" tableName="phpauth_requests">
+            <column name="type"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-38">
+        <createIndex associatedWith="" indexName="uid" tableName="phpauth_requests">
+            <column name="uid"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-39">
+        <createIndex associatedWith="" indexName="user_id" tableName="uploaded_files">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-40">
+        <addForeignKeyConstraint baseColumnNames="navigation_id" baseTableName="categories" constraintName="categories_ibfk_1" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="CASCADE" referencedColumnNames="id" referencedTableName="navigations" validate="true"/>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-41">
+        <addForeignKeyConstraint baseColumnNames="site_id" baseTableName="navigations" constraintName="fk_navigations_sites" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="CASCADE" referencedColumnNames="id" referencedTableName="sites" validate="true"/>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-42">
+        <addForeignKeyConstraint baseColumnNames="site_id" baseTableName="site_configurations" constraintName="site_configurations_ibfk_1" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="sites" validate="true"/>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-43">
+        <addForeignKeyConstraint baseColumnNames="config_id" baseTableName="site_configurations" constraintName="site_configurations_ibfk_2" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="configurations_definitions" validate="true"/>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-44">
+        <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="uploaded_files" constraintName="uploaded_files_ibfk_1" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="phpauth_users" validate="true"/>
+    </changeSet>
+    <changeSet author="Intel (generated)" id="1710115265958-45">
+        <addForeignKeyConstraint baseColumnNames="site_id" baseTableName="uploaded_files" constraintName="uploaded_files_ibfk_2" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="sites" validate="true"/>
+    </changeSet>
+</databaseChangeLog>
