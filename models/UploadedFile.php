@@ -166,7 +166,12 @@ class UploadedFile extends Model {
             $encodedImage = $image->toWebp(60);
 
             // Uložení upraveného obrázku do dočasného souboru
-            $tempFile = tempnam(sys_get_temp_dir(), 'webp');
+            if(strlen($_SERVER["TMP_PATH"])>0){
+                $tempFile = tempnam($_SERVER["TMP_PATH"], 'webp');
+            }
+            else{
+                $tempFile = tempnam(sys_get_temp_dir(), 'webp');    
+            }
             file_put_contents($tempFile, $encodedImage);
     
             // Nahrání miniatury do Google Cloud Storage
