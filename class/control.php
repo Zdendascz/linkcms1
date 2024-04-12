@@ -56,7 +56,19 @@ class domainControl {
             $this->logger->debug('Načtení informací o doméně '.$_SERVER['HTTP_HOST']." >>> ".$domainInfo); 
         }
         else{
+            \Tracy\Debugger::barDump(str_replace("www.","",$_SERVER['HTTP_HOST']), 'Doména nebyla nalezena');
             $this->logger->error('Nepodařilo se načíst data domény '.$_SERVER['HTTP_HOST']);
+            $_SERVER['SITE_ID'] = 0;
+            $_SERVER['SITE_NAME'] = 'Doména je hostována u nás';
+            $_SERVER['SITE_DOMAIN'] = 'mini-web.cz';
+            $_SERVER['SITE_NODOMAIN'] = str_replace("www.","",$_SERVER['HTTP_HOST']);
+            $_SERVER['SITE_CREATED_AT'] = '2024-01-10 09:19:48';
+            $_SERVER['SITE_UPDATED_AT'] = '2024-04-11 22:04:00';
+            $_SERVER['SITE_USER_ID'] = 1;
+            $_SERVER['SITE_ACTIVE'] = 'development';
+            $_SERVER['SITE_TARIF_ID'] = 1;
+            $_SERVER['SITE_TEMPLATE_DIR'] = 'templates/mini-web/';
+            $_SERVER['SITE_LANGUAGE'] = 'cs';
         }
 
     }
@@ -75,6 +87,7 @@ class domainControl {
         $path = str_replace('http://' . $_SERVER['SITE_DOMAIN'], '', $path);
         $path = str_replace('https://' . $_SERVER['SITE_DOMAIN'], '', $path);
         $path = str_replace($_SERVER["BASE_PATH"], '', $path);
+        //echo $path;
 
         // Vyhledání URL v databázi, která odpovídá jak doméně, tak cestě
         $siteDomain = $_SERVER['SITE_DOMAIN']; // Uložení hodnoty do lokální proměnné
@@ -87,7 +100,7 @@ class domainControl {
         ->first();
     
         // Kontrola, zda byl záznam nalezen
-        if ($url === null) {
+        if ($url == null) {
             // Zde můžete zpracovat situaci, kdy záznam nebyl nalezen
             \Tracy\Debugger::barDump($_SERVER['SITE_DOMAIN'].$path, 'Problém s nalezením url v db');
             \Tracy\Debugger::barDump($siteDomain, '-> doména');
@@ -286,6 +299,8 @@ class domainControl {
                 return $vars;
         }
     }
+
+    public function noweb() {}
 
 }
 

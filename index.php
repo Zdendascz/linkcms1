@@ -56,7 +56,7 @@ function loadConfiguration($logger) {
         // Zkontrolujte, zda existuje .env_local, a nastavte režim debuggeru
         if (file_exists($envPath . '/.env_local')) {
             // Vývojové prostředí
-            Tracy\Debugger::enable(Tracy\Debugger::DEVELOPMENT);
+            Tracy\Debugger::enable(Debugger::DEVELOPMENT);
         } else {
             // Produkční prostředí
             Tracy\Debugger::enable(Tracy\Debugger::PRODUCTION);
@@ -190,6 +190,7 @@ $handlers = [
     "handleSaveOrUpdateNavigation" => "linkcms1\Models\Navigation",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
