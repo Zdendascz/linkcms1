@@ -50,7 +50,7 @@ class adminControl {
         $this->logger->debug("Pokus o přihlášení pro uživatele: $email");
     
         if ($result['error']) {
-            $this->logger->warning("Neúspěšný pokus o přihlášení pro uživatele: $email");
+            $this->logger->warning("Neúspěšný pokus o přihlášení pro uživatele: $email :".$result['message']);
             return ['success' => false, 'message' => "Přihlášení selhalo: " . $result['message']];
         } else {
             $this->logger->debug("Uživatel: $email přihlášen");
