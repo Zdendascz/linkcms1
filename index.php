@@ -57,7 +57,7 @@ function loadConfiguration($logger) {
         if (file_exists($envPath . '/.env_local')) {
             // Vývojové prostředí
             Tracy\Debugger::enable(Debugger::DEVELOPMENT);
-        } else {
+        } else if (file_exists($envPath . '/.env')){
             // Produkční prostředí
             Tracy\Debugger::enable(Tracy\Debugger::PRODUCTION);
         }
@@ -466,7 +466,10 @@ switch ($routeInfo[0]) {
                     break;
                 }
                 default : {
-                    $renderPage = $vars[5].".twig";
+                    if(isset($_SERVER["SITE_NODOMAIN"]))
+                        $renderPage = "noweb.twig";
+                    else
+                        $renderPage = $vars[5].".twig";
                     $category = new linkcms1\Models\Category;
                     $pageData = $category->getCategoryInfo($vars[6]);
                     break;
