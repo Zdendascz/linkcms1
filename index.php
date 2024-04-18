@@ -25,6 +25,7 @@ use PHPAuth\Auth as PHPAuth;
 use linkcms1\adminControl;
 use linkcms1\Models\UserDetails;
 use linkcms1\Models\Navigation;
+use linkcms1\Models\Template;
 
 
 //******************** Vytvoření loggeru
@@ -188,6 +189,8 @@ $handlers = [
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
     "getNavigationsBySiteId" => "linkcms1\Models\Navigation",
     "handleSaveOrUpdateNavigation" => "linkcms1\Models\Navigation",
+    "getAllTemplates" => "linkcms1\Models\Template",
+    "handleSaveOrUpdateTemplate" => "linkcms1\Models\Template",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
@@ -449,6 +452,15 @@ switch ($routeInfo[0]) {
                     }
                     $templateDir = "templates/admin/";
                     $renderPage = "error.twig";
+                    break;
+                }
+                case 'templates' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $displayData["allTemplates"] = Template::getAllTemplates();
+                    $templateDir = "templates/admin/";
+                    $renderPage = "templates.twig";
                     break;
                 }
                 case 'articles' : {
