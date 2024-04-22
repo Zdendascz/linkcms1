@@ -40,7 +40,8 @@ class Article extends Model {
         'status',
         'publish_at',
         'publish_end_at',
-        'manual_update_at'
+        'manual_update_at',
+        'site_id'
     ];
 
     protected $casts = [
@@ -574,6 +575,44 @@ class Article extends Model {
     {
         return $this->morphToMany(UploadedFile::class, 'imageable', 'imageables', 'imageable_id', 'image_id')
                     ->withPivot('imageable_type');
+    }
+
+    public static function getHome(){
+        // home_cat - v rámci šablony id kategorie, která slouží jako Home stránka
+        return self::getArticlesByCategoryId($_SERVER["domain"]["home_cat"]);
+    }
+
+    public static function getArticlesByCategoryId($categoryId) {
+        $siteId = $_SERVER["SITE_ID"]; // Zajištění, že filtrujeme články pro správný site_id
+    
+        $category = Category::with(['articles' => function ($query) use ($siteId) {
+            $query->where('site_id', $siteId) // Filtruje články podle SITE_ID
+                  ->with('categories') // Načtení kategorií pro každý článek
+                  ->orderBy('created_at', 'desc'); // Řazení článků od nejnovějšího
+        }])->find($categoryId);
+    
+        if (!$category) {
+            return null; // Kategorie nebyla nalezena
+        }
+    
+        $articles = $category->articles->transform(function ($article) {
+            if (is_string($article->meta)) {
+                $article->meta = json_decode($article->meta, true);
+            } elseif (is_null($article->meta)) {
+                $article->meta = [];
+            }
+    
+            // Získání dat o souborech a obrázcích pro aktuální článek
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+    
+            // Přidání informací o souborech a obrázcích k článku
+            $article->files = $filesAndImages['files'];
+            $article->images = $filesAndImages['images'];
+    
+            return $article;
+        });
+    
+        return $articles;
     }
 }
 

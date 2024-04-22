@@ -175,6 +175,7 @@ $handlers = [
     "articles" => "linkcms1\Models\Article",
     "getActiveArticlesByCategoryWithUrlAndAuthor" => "linkcms1\Models\Article",
     "get_all_users" => "linkcms1\Models\User",
+    "getHome" => "linkcms1\Models\Article",
     "handleSaveOrUpdateSite" => "linkcms1\Models\Site",
     "categories" => "linkcms1\Models\Category",
     "handleSaveOrUpdateArticle" => "linkcms1\Models\Article",

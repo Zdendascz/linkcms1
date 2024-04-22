@@ -72,6 +72,10 @@ class Category extends Model
         return $this->belongsTo(Site::class, 'site_id');
     }
 
+    public function articles() {
+        return $this->belongsToMany(Article::class, 'article_categories', 'category_id', 'article_id');
+    }
+
     /**
      * Generuje HTML navigaci pro kategorie
      *
