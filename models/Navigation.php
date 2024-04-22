@@ -44,6 +44,9 @@ class Navigation extends Model
         $navigation->name = $data['name'];
         $navigation->description = $data['description'] ?? null;
         $navigation->site_id = $_SERVER["SITE_ID"];
+        $navigation->ul_class = $data["ul_class"];
+        $navigation->ul_id = $data["ul_id"];
+        $navigation->ul_style = $data["ul_style"];
     
         // Uložení navigace
         if ($navigation->save()) {
