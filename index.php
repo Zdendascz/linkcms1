@@ -422,6 +422,20 @@ switch ($routeInfo[0]) {
                     $renderPage = "myweb.twig";
                     break;
                 }
+                case 'newweb' : {
+                    if(!$admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
+                        header('Location: ' . $domainData["SITE_WEB"].'/admin/login/');
+                    }
+                    $pageData["allUrls"] = $domainInfo->getAllUrlsForDomain("*");
+                    $pageData["allDomains"] = $domainInfo->getAllDomainsWithInfo();
+                    $pageData["allTemplates"] = Template::getAllTemplates();
+                    $sitesData = new linkcms1\Models\Site();
+                    $pageData["allHandlers"] = $sitesData->getAllUniqueHandlers();
+                    $pageData["allModels"] = $sitesData->getAllUniqueModels(); 
+                    $templateDir = "templates/admin/";
+                    $renderPage = "newweb.twig";
+                    break;
+                }
                 case 'adminLogin' : {
                     if($admin->hasPermission($userId,"administration",$domainData["SITE_ID"])){
                         header('Location: ' . $domainData["SITE_WEB"].'/admin/');

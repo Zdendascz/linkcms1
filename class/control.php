@@ -8,6 +8,7 @@ use linkcms1\Models\Category;
 use linkcms1\Models\Article;
 use Monolog\Logger;
 use Tracy\Debugger;
+use Illuminate\Database\Eloquent\Model;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 
@@ -15,7 +16,7 @@ Debugger::enable(Debugger::DEVELOPMENT);
  * Třída reprezentující web, zpracovává kontrolu domény a informace o ní.
  * také zpracovává informace o konkrétní stránce
  */
-class domainControl {
+class domainControl extends Model {
 
     protected $capsule;
     protected $logger;

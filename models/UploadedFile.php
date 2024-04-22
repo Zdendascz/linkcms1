@@ -313,6 +313,41 @@ class UploadedFile extends Model {
         }
     }
 
+    /**
+     * Vytvoří adresář a podsložku na Google Cloud Storage.
+     *
+     * @param string $domain Název domény
+     * @return void
+     */
+    public static function createGoogleCloudDirectory($domain)
+    {
+        // Konfigurace a vytvoření instance klienta
+        $storageClient = new StorageClient([
+            'projectId' => $_SERVER['domain']['gc_project_id'],
+            'keyFilePath' => $_SERVER['domain']['gc_key_json'],
+        ]);
+
+        $bucket = $storageClient->bucket($_SERVER['domain']['gc_bucket_name']);
+
+        // Složky, které chceme vytvořit
+        $folders = [
+            $domain . '/',
+            $domain . '/_thumb/'
+        ];
+
+        // Vytváření složek, pokud neexistují
+        foreach ($folders as $folder) {
+            $object = $bucket->object($folder);
+            if (!$object->exists()) {
+                // Objekt neexistuje, vytvoření prázdného objektu jako složky
+                $bucket->upload('', [
+                    'name' => $folder,
+                    'predefinedAcl' => 'publicRead' // Přidáno pro nastavení ACL, pokud potřebujete objekt veřejně čitelný
+                ]);
+            }
+        }
+    }
+
 }
 
 ?>

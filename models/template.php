@@ -10,7 +10,12 @@ use linkcms1\Models\Url;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use Monolog\Logger;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
 use Tracy\Debugger;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 
 Debugger::enable(Debugger::DEVELOPMENT);
 $dbh = new PDO(
@@ -26,6 +31,8 @@ $auth = new PHPAuth($dbh, $config);
 class Template extends Model
 {
     use HasFactory;
+
+    protected static $logger;
 
     // Definuje, že model nemá timestamps - pokud máte v tabulce 'created_at' a 'updated_at', toto smažte
     public $timestamps = true;
@@ -58,6 +65,10 @@ class Template extends Model
         }*/
 
         return $templates->toArray();
+    }
+
+    public static function setLogger(Logger $logger) {
+        self::$logger = $logger;
     }
 
     public static function saveOrUpdateTemplate(array $formData)
@@ -109,11 +120,8 @@ class Template extends Model
             foreach ($formData['variable_name'] as $index => $name) {
                 $variables[] = [
                     'name' => $name,
-                    'key' => $formData['variable_key'][$index],
-                    'label' => $formData['variable_label'][$index],
-                    'default' => $formData['variable_default'][$index],
-                    'type' => $formData['variable_type'][$index],
-                    'role' => $formData['variable_role'][$index]
+                    'value' => $formData['variable_value'][$index],
+                    'description' => $formData['variable_description'][$index]
                 ];
             }
         }
@@ -165,5 +173,154 @@ class Template extends Model
             exit;
         }
     }
+
+    /**
+     * Vrátí šablonu na základě jejího ID.
+     *
+     * @param int $id ID šablony, kterou chceme získat
+     * @return mixed Šablona jako pole, nebo null, pokud šablona není nalezena
+     */
+    public static function getTemplateById($id)
+    {
+        // Načtení šablony pomocí Eloquent ORM
+        $template = self::find($id);
+
+        // Ověření, zda šablona existuje
+        if ($template) {
+            // Přetypování proměnných a obrázků pro náhled z JSON stringu na pole, pokud jsou v modelu jako JSON stringy
+            $template->variables = json_decode($template->variables, true);
+            $template->preview_images = json_decode($template->preview_images, true);
+
+            // Vrácení šablony jako pole
+            return $template->toArray();
+        } else {
+            // Vrácení null, pokud šablona nebyla nalezena
+            return null;
+        }
+    }
+
+    /**
+     * Kopíruje soubory z jednoho adresáře do druhého a případně vytvoří cílový adresář.
+     *
+     * @param string $sourceDir Zdrojový adresář
+     * @param string $targetDir Cílový adresář
+     * @return bool Vrací true pokud operace proběhla úspěšně, jinak false
+     */
+    public static function copyFiles($sourceDir, $targetDir)
+    {
+        // Zajistěte, že cesty končí lomítkem
+        $sourceDir = rtrim($sourceDir, '/') . '/';
+        $targetDir = rtrim($targetDir, '/') . '/';
+
+        // Kontrola, zda zdrojový adresář existuje
+        if (!is_dir($sourceDir)) {
+            self::$logger->error("Zdrojový adresář {$sourceDir} neexistuje.");
+            return false;
+        }
+
+        // Kontrola, zda cílový adresář existuje, pokud ne, vytvoří ho
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        } else {
+            // Vyprázdnění cílového adresáře, pokud již existuje
+            self::deleteDirectory($targetDir);
+            mkdir($targetDir, 0777, true); // Znovu vytvoření čistého adresáře
+        }
+
+        $dir = new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS);
+        $iterator = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::SELF_FIRST);
+
+        foreach ($iterator as $item) {
+            $targetPath = $targetDir . $iterator->getSubPathName();
+            if ($item->isDir()) {
+                // Vytvoření adresáře, pokud neexistuje
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0777, true);
+                }
+            } else {
+                // Kopírování souboru
+                if (!copy($item, $targetPath)) {
+                    self::$logger->error("Nepodařilo se kopírovat soubor z {$item} do {$targetPath}.");
+                    return false;
+                }
+            }
+        }
+
+        self::$logger->info("Soubory z {$sourceDir} byly úspěšně zkopírovány do {$targetDir}.");
+        return true;
+    }
+
+    /**
+     * Rekurzivní smazání adresáře
+     *
+     * @param string $dirPath Cesta k adresáři
+     */
+    private static function deleteDirectory($dirPath) {
+        if (!is_dir($dirPath)) {
+            throw new InvalidArgumentException("$dirPath must be a directory");
+        }
+        if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+            $dirPath .= '/';
+        }
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dirPath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($files as $fileinfo) {
+            $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+            $todo($fileinfo->getRealPath());
+        }
+
+        rmdir($dirPath);
+    }
+
+    /**
+     * Vytvoří adresářové struktury pro danou doménu.
+     *
+     * @param string $domain Název domény
+     * @return void
+     */
+    public static function createDomainDirectories($domain)
+    {
+        // Příprava základní cesty
+        $basePath = 'data/';
+
+        // Definice cest pro jednotlivé adresáře
+        $paths = [
+            $basePath . "files/$domain/",
+            $basePath . "images/$domain/",
+            $basePath . "code/$domain/"
+        ];
+
+        // Iterace a vytvoření každého adresáře
+        foreach ($paths as $path) {
+            if (!is_dir($path)) {
+                mkdir($path, 0777, true);  // Rekurzivní vytvoření adresářů, pokud neexistují
+            }
+        }
+    }
+
+    
 }
+
+// Nastavení loggeru
+$logger = new Logger('linkcms');
+// Nastavení rotačního handleru pro logování úrovní NOTICE a INFO
+$debugHandler = new RotatingFileHandler(__DIR__.'/../logs/info.log', 0, Logger::INFO);
+$logger->pushHandler($debugHandler);
+
+// nastavení rotačního handleru pro debug
+$debugHandler = new RotatingFileHandler(__DIR__.'/../logs/debug.log', 0, Logger::DEBUG);
+$logger->pushHandler($debugHandler);
+
+// Nastavení handleru pro logování úrovně WARNING do jednoho souboru
+$warningHandler = new StreamHandler(__DIR__.'/../logs/warning.log', Logger::WARNING);
+$warningHandler->setFormatter(new LineFormatter(null, null, true, true));
+$logger->pushHandler($warningHandler);
+
+// Nastavení handleru pro logování úrovně ERROR do nerotujícího souboru
+$errorHandler = new StreamHandler(__DIR__.'/../logs/error.log', Logger::ERROR);
+$logger->pushHandler($errorHandler);
+Template::setLogger($logger);
 ?>
