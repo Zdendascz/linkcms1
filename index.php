@@ -194,6 +194,7 @@ $handlers = [
     "handleSaveOrUpdateTemplate" => "linkcms1\Models\Template",
     "handleSaveSiteConfiguration" => "linkcms1\Models\ConfigurationDefinition",
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "favicon" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -492,6 +493,13 @@ switch ($routeInfo[0]) {
                     $renderPage = "home.twig";
                     break;
                 }
+                case 'home' : {
+                    $catData = new linkcms1\Models\Category();
+                    $pageData = $catData->getCategoryInfo($vars[6]);
+
+                    $renderPage = "home.twig";
+                    break;
+                }
                 default : {
                     if(isset($_SERVER["SITE_NODOMAIN"]))
                         $renderPage = "noweb.twig";
@@ -524,15 +532,19 @@ $variables = [
     'premissions' => $premissions,
     'templateDir' => $templateDir,
     'webNavigations' => $webNavigations,
+    'newArticles' => article::getLatestActiveArticles(),
+    'popularArticles' => article::getArticlesByCategoryId($_SERVER["domain"]["popular_cat"]),
+    'actualUrl' => url::getCurrentUrl(),
     'get' => linkcms1\Models\Url::nactiBezpecneGetParametry()
 ];
-
+Tracy\Debugger::barDump($webNavigations, 'Web Navigations');
 for($i=0;$i<count($webNavigations);$i++){
-    $variables['navigation'][$webNavigations[$i]["id"]] = Category::generateNavigation( $_SERVER["SITE_ID"],
+    $variables['navigation'][$i] = Category::generateNavigation( $_SERVER["SITE_ID"],
                                                                                         $webNavigations[$i]["id"], 
                                                                                         null,
-                                                                                        $domainConfData["ulClassNav_".$webNavigations[$i]["id"]],
-                                                                                        $domainConfData["ulIdNav_".$webNavigations[$i]["id"]]);
+                                                                                        $webNavigations[$i]["ul_class"],
+                                                                                        $webNavigations[$i]["ul_id"],
+                                                                                        $webNavigations[$i]["ul_style"]);
     
     }
 
@@ -551,6 +563,35 @@ $twig = new \Twig\Environment($loader, [
      'debug' => true,
 ]);
 $twig->addExtension(new \Twig\Extension\DebugExtension());
+$twig->addFunction(new \Twig\TwigFunction('modify_query', 'modify_query'));
 
 echo $twig->render($renderPage, $variables);
+
+/**
+ * modify_query - funkce umožňuje manipulovat s url v twigu
+ *
+ * @param  mixed $url
+ * @param  mixed $new_params
+ * @return void
+ */
+function modify_query($url, $new_params) {
+    $parts = parse_url($url);
+    $query = [];
+    if (isset($parts['query'])) {
+        parse_str($parts['query'], $query);
+    }
+    $query = array_merge($query, $new_params);
+    $parts['query'] = http_build_query($query);
+
+    return (isset($parts['scheme']) ? "{$parts['scheme']}:" : '') .
+           ((isset($parts['user']) || isset($parts['host'])) ? '//' : '') .
+           (isset($parts['user']) ? "{$parts['user']}" : '') .
+           (isset($parts['pass']) ? ":{$parts['pass']}" : '') .
+           (isset($parts['user']) ? '@' : '') .
+           (isset($parts['host']) ? "{$parts['host']}" : '') .
+           (isset($parts['port']) ? ":{$parts['port']}" : '') .
+           (isset($parts['path']) ? "{$parts['path']}" : '') .
+           (isset($parts['query']) ? "?{$parts['query']}" : '') .
+           (isset($parts['fragment']) ? "#{$parts['fragment']}" : '');
+}
 ?>

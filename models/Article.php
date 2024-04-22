@@ -407,6 +407,7 @@ class Article extends Model {
             'publish_at' => $publishAt,
             'publish_end_at' => $publishEndAt,
             'last_modified_at' => $lastModifiedAt,
+            
         ];
     
         return $data;
@@ -579,16 +580,29 @@ class Article extends Model {
 
     public static function getHome(){
         // home_cat - v rámci šablony id kategorie, která slouží jako Home stránka
-        return self::getArticlesByCategoryId($_SERVER["domain"]["home_cat"]);
+        if(isset($_GET["articlesPage"]))
+            $page = $_GET["articlesPage"];
+        else
+            $page = 1;
+        $return["articles"] =  self::getArticlesByCategoryId($_SERVER["domain"]["home_cat"], $page);
+        $return["totalPages"] = self::getTotalPages($_SERVER["domain"]["home_cat"]);
+
+        return $return;
     }
 
-    public static function getArticlesByCategoryId($categoryId) {
-        $siteId = $_SERVER["SITE_ID"]; // Zajištění, že filtrujeme články pro správný site_id
-    
-        $category = Category::with(['articles' => function ($query) use ($siteId) {
-            $query->where('site_id', $siteId) // Filtruje články podle SITE_ID
-                  ->with('categories') // Načtení kategorií pro každý článek
-                  ->orderBy('created_at', 'desc'); // Řazení článků od nejnovějšího
+    public static function getArticlesByCategoryId($categoryId, $page = 1) {
+        $siteId = $_SERVER["SITE_ID"];
+        $pageSize = $_SERVER["domain"]["articles_count"];
+
+        $offset = ($page - 1) * $pageSize; // Vypočet offsetu pro dotaz
+
+        $category = Category::with(['articles' => function ($query) use ($siteId, $pageSize, $offset) {
+            $query->where('site_id', $siteId)
+                  ->where('status', 'active')
+                  ->with('categories')
+                  ->orderBy('created_at', 'desc')
+                  ->skip($offset)
+                  ->take($pageSize); // Omezení počtu článků na stránku
         }])->find($categoryId);
     
         if (!$category) {
@@ -608,6 +622,68 @@ class Article extends Model {
             // Přidání informací o souborech a obrázcích k článku
             $article->files = $filesAndImages['files'];
             $article->images = $filesAndImages['images'];
+    
+            // Volání metody z třídy Url pro získání URL
+            $articleUrl = Url::getUrlByModelAndId('articles', $article->id);
+
+            // Přidání URL do výstupu článku
+            $article->url = $articleUrl;
+    
+            return $article;
+        });
+    
+        return $articles;
+    }
+
+    public static function getTotalPages($categoryId) {
+        $siteId = $_SERVER["SITE_ID"];
+        // Přístup k článkům přes model Category, aby byl dotaz konzistentní s dotazem pro získání článků
+        $category = Category::with(['articles' => function ($query) use ($siteId) {
+            $query->where('site_id', $siteId)
+                  ->where('status', 'active');
+        }])->find($categoryId);
+    
+        if (!$category) {
+            return 0; // V případě, že kategorie neexistuje, vrátí 0 stránek
+        }
+    
+        $count = $category->articles->count(); // Získání počtu aktivních článků v kategorii pro dané site_id
+        $articlesPerPage = $_SERVER["domain"]["articles_count"]; // Počet článků na stránku z konfigurace serveru
+    
+        return ceil($count / $articlesPerPage); // Výpočet celkového počtu stránek
+    }
+
+    public static function getLatestActiveArticles() {
+        $siteId = $_SERVER["SITE_ID"]; // Zajištění, že filtrujeme články pro správný site_id
+    
+        // Načtení deseti nejnovějších článků se stavem 'active' pro daný site_id
+        $articles = Article::where('site_id', $siteId)
+                           ->where('status', 'active')
+                           ->with('categories') // Načtení kategorií pro každý článek
+                           ->orderBy('created_at', 'desc') // Řazení článků od nejnovějšího
+                           ->limit(10) // Omezení výsledku na 10 článků
+                           ->get();
+    
+        // Transformace výsledků pro načtení meta dat a souborů
+        $articles->transform(function ($article) {
+            if (is_string($article->meta)) {
+                $article->meta = json_decode($article->meta, true);
+            } elseif (is_null($article->meta)) {
+                $article->meta = [];
+            }
+    
+            // Získání dat o souborech a obrázcích pro aktuální článek
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+    
+            // Přidání informací o souborech a obrázcích k článku
+            $article->files = $filesAndImages['files'];
+            $article->images = $filesAndImages['images'];
+
+            // Volání metody z třídy Url pro získání URL
+            $articleUrl = Url::getUrlByModelAndId('articles', $article->id);
+
+            // Přidání URL do výstupu článku
+            $article->url = $articleUrl;
     
             return $article;
         });
