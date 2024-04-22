@@ -155,7 +155,8 @@ class Article extends Model {
                     'publish_at' => $publishAt,
                     'publish_end_at' => $publishEndAt,
                     'manual_update_at' => $modifiedAt,
-                    'status' => $status
+                    'status' => $status,
+                    'site_id' => $_SERVER["SITE_ID"]
                 ]
             );
     
@@ -315,7 +316,8 @@ class Article extends Model {
      * @return Illuminate\Database\Eloquent\Collection Kolekce článků s kategoriemi
      */
     public static function getAllArticlesWithCategories() {
-        $articles = self::with('categories')->get();
+        // Přidání podmínky where do dotazu pro filtraci článků podle site_id
+        $articles = self::with('categories')->where('site_id', $_SERVER["SITE_ID"])->get();
     
         // Transformace 'meta' dat z JSON na PHP pole pro každý článek, pokud ještě nejsou pole
         $articles->transform(function ($article) {
