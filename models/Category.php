@@ -94,56 +94,35 @@ class Category extends Model
      *                  ]
      * @return void
      */
-    public static function generateNavigation($siteId, $navigation_id=null, $parentId = null, $navigationSpecifications=false) {
+    public static function generateNavigation($siteId, $navigation_id = null, $parentId = null, $navigationSpecifications = false) {
         $insertUl = "";
-        if(isset($navigationSpecifications)){
-            if(@$navigationSpecifications["ul_class"]) $insertUl .= " class='".$navigationSpecifications["ul_class"]."'";
-            if(@$navigationSpecifications["ul_id"]) $insertUl .= " id='".$navigationSpecifications["ul_id"]."'";
-            if(@$navigationSpecifications["ul_style"]) $insertUl .= " style='".$navigationSpecifications["ul_style"]."'";
-        }
-
-        if(isset($navigationSpecifications["sub_ul"]) && $navigationSpecifications["sub_ul"] == true){
-        $subInsertUl = "";
-            if($navigationSpecifications["sub_ul_class"]) $insertUl .= " class='".$navigationSpecifications["sub_ul_class"]."'";
-            if($navigationSpecifications["sub_ul_id"]) $insertUl .= " id='".$navigationSpecifications["sub_ul_id"]."'";
-            if($navigationSpecifications["sub_ul_style"]) $insertUl .= " style='".$navigationSpecifications["sub_ul_style"]."'";
-        }
-        
-        $html = '<ul '.$insertUl.'>';
-        if($navigation_id <> null){
-            $categories = self::where('parent_id', $parentId)
-                            ->where('site_id', $siteId)
-                            ->where('navigation_id', $navigation_id)
-                            ->where('is_active', 'active')
-                            ->orderBy('order_cat', 'asc')
-                            ->get();
-        }
-        else{
-            $categories = self::where('parent_id', $parentId)
-                           ->where('site_id', $siteId)
-                           ->where('is_active', 'active')
-                           ->orderBy('order_cat', 'asc')
-                           ->get();
+        if (isset($navigationSpecifications)) {
+            if (isset($navigationSpecifications["ul_class"])) $insertUl .= " class='" . $navigationSpecifications["ul_class"] . "'";
+            if (isset($navigationSpecifications["ul_id"])) $insertUl .= " id='" . $navigationSpecifications["ul_id"] . "'";
+            if (isset($navigationSpecifications["ul_style"])) $insertUl .= " style='" . $navigationSpecifications["ul_style"] . "'";
         }
     
+        $html = '<ul' . $insertUl . '>';
+        $categories = self::where('parent_id', $parentId)
+                        ->where('site_id', $siteId)
+                        ->where('navigation_id', $navigation_id)
+                        ->where('is_active', 'active')
+                        ->orderBy('order_cat', 'asc')
+                        ->get();
+    
         foreach ($categories as $category) {
-            // Dekódování JSON a příprava atributů
             $css = json_decode($category->css_cat, true) ?? [];
             $aAttributes = self::prepareAttributes($css, 'a');
             $liAttributes = self::prepareAttributes($css, 'li');
     
-            // Vytvoření elementů s případnými atributy
             $html .= '<li ' . $liAttributes . '>';
-            $html .= !empty($category->url) ? '<a href="' . htmlspecialchars($category->url) . '" ' . $aAttributes . '>' . htmlspecialchars($category->title) . '</a>' : htmlspecialchars($category->title);
+            $html .= '<a href="' . htmlspecialchars($category->url) . '" ' . $aAttributes . '>' . htmlspecialchars($category->title) . '</a>';
     
-            if (self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 'active')->exists()) {
-                $childHtml = self::generateNavigation($siteId, null, $category->id);
-                if(isset($navigationSpecifications["sub_ul"]) && $navigationSpecifications["sub_ul"] == true){
-                    $html .= '<ul '.$subInsertUl.' >' . $childHtml . '</ul>';
-                }
-                else{
-                    $html .= $childHtml;
-                }
+            // Check if this category has children and sub_ul attribute is 1
+            $childCategories = self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 'active')->get();
+            if (count($childCategories) > 0 && (isset($navigationSpecifications['sub_ul']) && $navigationSpecifications['sub_ul'] == 1)) {
+                $childHtml = self::generateNavigation($siteId, $navigation_id, $category->id, $navigationSpecifications); // propagate specifications to children
+                $html .= $childHtml; // childHtml should include <ul> only if children exist
             }
     
             $html .= '</li>';
@@ -152,6 +131,7 @@ class Category extends Model
         $html .= '</ul>';
         return $html;
     }
+    
     
     private static function prepareAttributes($css, $tag) {
         $attributes = '';
