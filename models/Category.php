@@ -76,18 +76,38 @@ class Category extends Model
         return $this->belongsToMany(Article::class, 'article_categories', 'category_id', 'article_id');
     }
 
+        
     /**
-     * Generuje HTML navigaci pro kategorie
+     * generateNavigation
      *
-     * @param int $siteId ID stránky
-     * @param int|null $parentId ID nadřazené kategorie, nebo null pro kořenové kategorie
-     * @return string HTML navigace
+     * @param  mixed $siteId
+     * @param  mixed $navigation_id
+     * @param  mixed $parentId
+     * @param  mixed $navigationSpecifications obsahuje [
+     *                  ul_class
+     *                  ul_id
+     *                  ul_style
+     *                  sub_ul (true/dalse)
+     *                  sub_ul_class
+     * *                sub_ul_id
+     *                  sub_ul_style
+     *                  ]
+     * @return void
      */
-    public static function generateNavigation($siteId, $navigation_id=null, $parentId = null, $ulClass = null, $ulId = null, $ulStyle = null) {
+    public static function generateNavigation($siteId, $navigation_id=null, $parentId = null, $navigationSpecifications=false) {
         $insertUl = "";
-        if($ulClass) $insertUl .= " class='".$ulClass."'";
-        if($ulId) $insertUl .= " id='".$ulId."'";
-        if($ulStyle) $insertUl .= " style='".$ulStyle."'";
+        if(isset($navigationSpecifications)){
+            if(@$navigationSpecifications["ul_class"]) $insertUl .= " class='".$navigationSpecifications["ul_class"]."'";
+            if(@$navigationSpecifications["ul_id"]) $insertUl .= " id='".$navigationSpecifications["ul_id"]."'";
+            if(@$navigationSpecifications["ul_style"]) $insertUl .= " style='".$navigationSpecifications["ul_style"]."'";
+        }
+
+        if(isset($navigationSpecifications["sub_ul"]) && $navigationSpecifications["sub_ul"] == true){
+        $subInsertUl = "";
+            if($navigationSpecifications["sub_ul_class"]) $insertUl .= " class='".$navigationSpecifications["sub_ul_class"]."'";
+            if($navigationSpecifications["sub_ul_id"]) $insertUl .= " id='".$navigationSpecifications["sub_ul_id"]."'";
+            if($navigationSpecifications["sub_ul_style"]) $insertUl .= " style='".$navigationSpecifications["sub_ul_style"]."'";
+        }
         
         $html = '<ul '.$insertUl.'>';
         if($navigation_id <> null){
@@ -118,7 +138,12 @@ class Category extends Model
     
             if (self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 'active')->exists()) {
                 $childHtml = self::generateNavigation($siteId, null, $category->id);
-                $html .= $childHtml;
+                if(isset($navigationSpecifications["sub_ul"]) && $navigationSpecifications["sub_ul"] == true){
+                    $html .= '<ul '.$subInsertUl.' >' . $childHtml . '</ul>';
+                }
+                else{
+                    $html .= $childHtml;
+                }
             }
     
             $html .= '</li>';

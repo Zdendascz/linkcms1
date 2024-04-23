@@ -542,9 +542,7 @@ for($i=0;$i<count($webNavigations);$i++){
     $variables['navigation'][$i] = Category::generateNavigation( $_SERVER["SITE_ID"],
                                                                                         $webNavigations[$i]["id"], 
                                                                                         null,
-                                                                                        $webNavigations[$i]["ul_class"],
-                                                                                        $webNavigations[$i]["ul_id"],
-                                                                                        $webNavigations[$i]["ul_style"]);
+                                                                                        $webNavigations[$i]);
     
     }
 
