@@ -486,11 +486,11 @@ switch ($routeInfo[0]) {
                     $renderPage = "article.twig";
                     break;
                 }
-                case 'articles' : {
+                case 'code' : {
                     $catData = new linkcms1\Models\Category();
                     $pageData = $catData->getCategoryInfo($vars[6]);
 
-                    $renderPage = "home.twig";
+                    $renderPage = "code.twig";
                     break;
                 }
                 case 'home' : {
@@ -533,7 +533,7 @@ $variables = [
     'templateDir' => $templateDir,
     'webNavigations' => $webNavigations,
     'newArticles' => article::getLatestActiveArticles(),
-    'popularArticles' => article::getArticlesByCategoryId($_SERVER["domain"]["popular_cat"]),
+    'popularArticles' => article::getArticlesByCategoryId(@$_SERVER["domain"]["popular_cat"]),
     'actualUrl' => url::getCurrentUrl(),
     'get' => linkcms1\Models\Url::nactiBezpecneGetParametry()
 ];
@@ -556,13 +556,26 @@ Tracy\Debugger::barDump($variables, 'Promnné');
 Tracy\Debugger::barDump($templateDir.$renderPage, 'Template');
 $loader = new \Twig\Loader\FilesystemLoader($templateDir);
 $twig = new \Twig\Environment($loader, [
-    //'cache' => '/templates/cache',
-     'cache' => false, // Vypnout cache pro vývoj
-     'debug' => true,
+    'cache' => false,
+    'debug' => true,
 ]);
 $twig->addExtension(new \Twig\Extension\DebugExtension());
+$twig->addExtension(new \Twig\Extension\StringLoaderExtension());
+
+// Tady přidáme funkci modify_query do Twig
 $twig->addFunction(new \Twig\TwigFunction('modify_query', 'modify_query'));
 
+if($vars[5] == "code"){
+    // Načtení HTML z databáze
+    $htmlFromDB = $displayData['body'];  // Tento řetězec obsahuje Twig syntaxi
+
+    // Interpretace HTML z databáze s využitím Twig proměnných
+    $interpretedHTML = $twig->createTemplate($htmlFromDB)->render(['domainData' => $domainData]);
+
+    // Předání interpretovaného HTML do šablony
+$variables['displayData']['body'] = $interpretedHTML;
+}
+// Vykreslení šablony
 echo $twig->render($renderPage, $variables);
 
 /**
