@@ -33,28 +33,39 @@ class domainControl extends Model {
      * funkce načítá infomace o doméně a ukládá je k dalšímu použití
      * @return data v poli $_SERVER[] s prefixem SITE_
      */
-    public function loadDomain (){
-        $domain = Site::where('domain', '=', str_replace("www.","",$_SERVER['HTTP_HOST']))->first();
+    public function loadDomain() {
+        $domain = Site::where('domain', '=', str_replace("www.", "", $_SERVER['HTTP_HOST']))->first();
         $domainInfo = "";
-        
+    
         if ($domain) {
             foreach ($domain->getAttributes() as $key => $value) {
                 // Kontrola, zda hodnota je JSON a dekódování
                 if (is_string($value) && is_array(json_decode($value, true)) && json_last_error() === JSON_ERROR_NONE) {
                     $value = json_decode($value, true);
                 }
-        
-                // Přidání hodnoty do $_SERVER s prefixem 'SITE_'
-                $_SERVER['SITE_' . strtoupper($key)] = $value;
                 
-                // Kontrola, zda je hodnota pole a převod na řetězec
-                if (is_array($value)) {
-                    $value = json_encode($value);
+                // Přidání hodnoty do $_SERVER s prefixem 'SITE_'
+                if ($key !== 'configurations') {
+                    $_SERVER['SITE_' . strtoupper($key)] = $value;
+                    // Převod pole na řetězec pro logování, pokud je hodnota pole
+                    $value = is_array($value) ? json_encode($value) : $value;
+                } else {
+                    // Speciální zpracování pro SITE_CONFIGURATIONS
+                    if (is_array($value)) {
+                        $configs = [];
+                        foreach ($value as $config) {
+                            $configs[$config['name']] = $config['value'];
+                        }
+                        $_SERVER['SITE_CONFIGURATIONS'] = $configs;
+                        // Převod pole konfigurací na řetězec JSON pro logování
+                        $value = json_encode($configs);
+                    }
                 }
 
+                // Zde je již $value vždy řetězec, ať už původní nebo JSON reprezentace pole
                 $domainInfo .= $key."=".$value;
             }
-            $this->logger->debug('Načtení informací o doméně '.$_SERVER['HTTP_HOST']." >>> ".$domainInfo); 
+            $this->logger->debug('Načtení informací o doméně '.$_SERVER['HTTP_HOST']." >>> ".$domainInfo);
         }
         else{
             \Tracy\Debugger::barDump(str_replace("www.","",$_SERVER['HTTP_HOST']), 'Doména nebyla nalezena');
