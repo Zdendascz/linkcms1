@@ -241,6 +241,7 @@ class Article extends Model {
     
         // Najde existující URL pro daný článek
         $existingUrl = Url::where('model', 'articles')
+                          ->where('domain', '=', $_SERVER['HTTP_HOST'])
                           ->where('model_id', $article->id)
                           ->first();
     
@@ -252,7 +253,6 @@ class Article extends Model {
         // Kontrola existence jiného záznamu s novou URL
         $urlConflict = Url::where('url', $path)
                           ->where('model', '!=', 'articles')
-                          ->where('domain', '=', $_SERVER['HTTP_HOST'])
                           ->orWhere(function($query) use ($path, $article) {
                               $query->where('url', $path)
                                     ->where('model', '=', 'articles')
