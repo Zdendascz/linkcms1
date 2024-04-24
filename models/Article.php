@@ -252,6 +252,7 @@ class Article extends Model {
         // Kontrola existence jiného záznamu s novou URL
         $urlConflict = Url::where('url', $path)
                           ->where('model', '!=', 'articles')
+                          ->where('domain', '=', $_SERVER['HTTP_HOST'])
                           ->orWhere(function($query) use ($path, $article) {
                               $query->where('url', $path)
                                     ->where('model', '=', 'articles')
@@ -261,7 +262,7 @@ class Article extends Model {
     
         if ($urlConflict) {
             // Existuje konflikt URL, vrátí chybu s ID konfliktního záznamu
-            return ['success' => false, 'message' => 'URL už existuje', 'conflict_id' => $urlConflict->id];
+            return ['success' => false, 'message' => 'URL už existuje: url_id'.$urlConflict->id];
         }
     
         if ($existingUrl) {
