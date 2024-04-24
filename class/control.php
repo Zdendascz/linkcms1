@@ -54,14 +54,15 @@ class domainControl extends Model {
                     if (is_array($value)) {
                         $configs = [];
                         foreach ($value as $config) {
-                            $configs[$config['name']] = $config['value'];
+                            // Uložení hodnoty a popisku do pole
+                            $configs[$config['name']] = ['value' => $config['value'], 'description' => $config['description']];
                         }
                         $_SERVER['SITE_CONFIGURATIONS'] = $configs;
                         // Převod pole konfigurací na řetězec JSON pro logování
                         $value = json_encode($configs);
                     }
                 }
-
+    
                 // Zde je již $value vždy řetězec, ať už původní nebo JSON reprezentace pole
                 $domainInfo .= $key."=".$value;
             }
@@ -70,19 +71,23 @@ class domainControl extends Model {
         else{
             \Tracy\Debugger::barDump(str_replace("www.","",$_SERVER['HTTP_HOST']), 'Doména nebyla nalezena');
             $this->logger->error('Nepodařilo se načíst data domény '.$_SERVER['HTTP_HOST']);
-            $_SERVER['SITE_ID'] = 0;
-            $_SERVER['SITE_NAME'] = 'Doména je hostována u nás';
-            $_SERVER['SITE_DOMAIN'] = 'mini-web.cz';
-            $_SERVER['SITE_NODOMAIN'] = str_replace("www.","",$_SERVER['HTTP_HOST']);
-            $_SERVER['SITE_CREATED_AT'] = '2024-01-10 09:19:48';
-            $_SERVER['SITE_UPDATED_AT'] = '2024-04-11 22:04:00';
-            $_SERVER['SITE_USER_ID'] = 1;
-            $_SERVER['SITE_ACTIVE'] = 'development';
-            $_SERVER['SITE_TARIF_ID'] = 1;
-            $_SERVER['SITE_TEMPLATE_DIR'] = 'templates/mini-web/';
-            $_SERVER['SITE_LANGUAGE'] = 'cs';
+            // Nastavení výchozích hodnot, pokud doména není nalezena
+            $this->setDefaultDomainValues();
         }
+    }
 
+    private function setDefaultDomainValues() {
+        $_SERVER['SITE_ID'] = 0;
+        $_SERVER['SITE_NAME'] = 'Doména je hostována u nás';
+        $_SERVER['SITE_DOMAIN'] = 'mini-web.cz';
+        $_SERVER['SITE_NODOMAIN'] = str_replace("www.","",$_SERVER['HTTP_HOST']);
+        $_SERVER['SITE_CREATED_AT'] = '2024-01-10 09:19:48';
+        $_SERVER['SITE_UPDATED_AT'] = '2024-04-11 22:04:00';
+        $_SERVER['SITE_USER_ID'] = 1;
+        $_SERVER['SITE_ACTIVE'] = 'development';
+        $_SERVER['SITE_TARIF_ID'] = 1;
+        $_SERVER['SITE_TEMPLATE_DIR'] = 'templates/mini-web/';
+        $_SERVER['SITE_LANGUAGE'] = 'cs';
     }
     
     /**
