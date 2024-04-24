@@ -184,8 +184,12 @@ class Article extends Model {
     
             // Zpracování URL pouze pokud se jedná o nový článek
             if (empty($data['id'])) {
-                $safeTitle = self::createSafeTitle($data['title']); // Implementujte podle vašich pravidel
-                $urlPath = '/' . $safeTitle; // Příklad, jak by mohla URL vypadat
+                $safeTitle = self::createSafeTitle($data['url']); // Implementujte podle vašich pravidel
+                if (substr($safeTitle, 0, 1) !== '/') {
+                    $urlPath = '/' . $safeTitle;
+                } else {
+                    $urlPath = $safeTitle;
+                }
                 $urlProcessResult = self::processUrlForArticle($article, $urlPath);
         
                 if (is_array($urlProcessResult) && !$urlProcessResult['success']) {
@@ -287,13 +291,12 @@ class Article extends Model {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Zpracování dat formuláře
             $postData = $_POST;
-            Debugger::barDump($_POST, 'Odeslaná data');
             // Případná další validace dat zde
     
             // Volání metody pro uložení nebo aktualizaci článku
             $result = Article::saveOrUpdateArticle($postData);
     
-            if ($result['status']) {
+            if (isset($result['status']) and $result['status'] == true) {
                 // Úspěch: Přesměrování s úspěšnou zprávou
                 $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=success&message=' . urlencode($result['message']) : $_SERVER['HTTP_REFERER'] . '?status=success&message=' . urlencode($result['message']);
                 header('Location: ' . $redirectUrl);
