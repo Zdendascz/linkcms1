@@ -17,15 +17,20 @@ use Exception;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use InvalidArgumentException;
+
 
 class UploadedFile extends Model {
     protected $table = 'uploaded_files'; // Explicitně specifikuje název tabulky, pokud není standardní
     protected $fillable = ['user_id', 'site_id', 'name', 'file_path', 'mime_type', 'size', 'role', 'status']; // Pole, do kterých lze hromadně přiřazovat
 
     // Zde můžete přidat další metody modelu, jako jsou relace nebo vlastní dotazy
-    public static function getAllFilesBySiteId($siteId) {
-        return self::where('site_id', $siteId)->get();
+    public static function getAllFilesBySiteId() {
+        return self::where('site_id', $_SERVER["SITE_ID"])
+                   ->orderBy('id', 'DESC')
+                   ->get();
     }
+    
 
     public static function uploadFiles(array $files) {
         
@@ -155,16 +160,15 @@ class UploadedFile extends Model {
             $thumbnailPath = $_SERVER['domain']['gc_slozka'] ."_thumb/". $thumbnailFileName;
             $folderPath = $_SERVER['domain']['gc_slozka'] ."_thumb/";
             $thumbnailPublicUrl = "https://storage.googleapis.com/".$_SERVER['domain']['gc_bucket_name']."/{$thumbnailPath}";
-    
-            // Změna velikosti
-            $image = $manager->read($tempPath)->resize($dim['w'], $dim['h'], function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            });
+            
+            $image = $manager->read($tempPath);
 
+            // $image = $image->crop($dim['w'], $dim['h'], $x, $y);
+            $image->scaleDown($dim['w'], $dim['h']); 
+        
             // Provedení enkódování do formátu WEBP
-            $encodedImage = $image->toWebp(60);
-
+            $encodedImage = $image->toWebp(75);
+        
             // Uložení upraveného obrázku do dočasného souboru
             if(strlen($_SERVER["TMP_PATH"])>0){
                 $tempFile = tempnam($_SERVER["TMP_PATH"], 'webp');
@@ -173,13 +177,13 @@ class UploadedFile extends Model {
                 $tempFile = tempnam(sys_get_temp_dir(), 'webp');    
             }
             file_put_contents($tempFile, $encodedImage);
-    
+        
             // Nahrání miniatury do Google Cloud Storage
             self::saveFileToGoogleCloud($tempFile, $thumbnailFileName, $thumbnailPath, $folderPath);
-
+        
             // Odstranění dočasného souboru
             unlink($tempFile);
-    
+        
             // Uložení informací o miniatuře do databáze
             $variant = new ImageVariant();
             $variant->original_image_id = $originalImageId;
@@ -260,7 +264,7 @@ class UploadedFile extends Model {
 
     public static function getAllFilesWithVariants($type = false)
     {
-        $query = self::with('variants');
+        $query = self::with('variants')->orderBy('created_at', 'desc');
         if ($type == 'image') {
             $query->where('mime_type', 'like', 'image/%');
         } elseif ($type === 'file') {
@@ -345,6 +349,89 @@ class UploadedFile extends Model {
                     'predefinedAcl' => 'publicRead' // Přidáno pro nastavení ACL, pokud potřebujete objekt veřejně čitelný
                 ]);
             }
+        }
+    }
+
+    /**
+     * Uloží nebo aktualizuje obrázek v databázi.
+     * @param array $data Pole s daty pro uložení nebo aktualizaci.
+     * @return array
+     */
+    public static function saveImageData($data)
+    {
+        $response = ['success' => false, 'message' => '', 'data' => null];
+
+        try {
+            // Ověření dat
+            if (empty($data['name']) || empty($data['title']) || empty($data['alt']) || empty($data['status'])) {
+                throw new InvalidArgumentException("Všechny políčka musí být vyplněna.");
+            }
+
+            // Sanitace dat
+            $data['name'] = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
+            $data['title'] = htmlspecialchars($data['title'], ENT_QUOTES, 'UTF-8');
+            $data['alt'] = htmlspecialchars($data['alt'], ENT_QUOTES, 'UTF-8');
+            $data['status'] = htmlspecialchars($data['status'], ENT_QUOTES, 'UTF-8');
+
+            // Kontrola, zda status je v platném rozsahu
+            $validStatuses = ['active', 'development', 'hidden', 'suspend', 'deleted'];
+            if (!in_array($data['status'], $validStatuses)) {
+                throw new InvalidArgumentException("Neplatný status obrázku.");
+            }
+
+            if (isset($data['id'])) {
+                // Pokud je poskytnuto ID, najde se existující záznam
+                $image = self::find($data['id']);
+                if (!$image) {
+                    throw new Exception("Obrázek s ID {$data['id']} nebyl nalezen.");
+                }
+            } else {
+                // Vytvoření nového záznamu, pokud ID není poskytnuto
+                $image = new self;
+            }
+
+            // Nastavení atributů
+            $image->name = $data['name'];
+            $image->title = $data['title'];
+            $image->alt = $data['alt'];
+            $image->status = $data['status'];
+
+            // Uložení záznamu do databáze
+            $image->save();
+
+            $response['success'] = true;
+            $response['message'] = 'Obrázek byl úspěšně uložen.';
+            $response['data'] = $image;
+        } catch (Exception $e) {
+            $response['message'] = "Chyba při ukládání obrázku: " . $e->getMessage();
+        }
+
+        return $response;
+    }
+
+    public function handleSaveImageData() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Získání dat z POST requestu
+            $data = [
+                'id' => $_POST['id'] ?? null,  // použití null, pokud 'id' není poskytnuto
+                'name' => $_POST['name'] ?? '', // předpokládáme, že tyto položky existují v POST data
+                'title' => $_POST['title'] ?? '',
+                'alt' => $_POST['alt'] ?? '',
+                'status' => $_POST['status'] ?? ''
+            ];
+    
+            // Volání metody pro uložení dat
+            $response = self::saveImageData($data);
+    
+            // Odeslání JSON odpovědi
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit;
+        } else {
+            // Neplatný požadavek
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Neplatný požadavek.']);
+            exit;
         }
     }
 

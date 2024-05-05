@@ -186,6 +186,7 @@ $handlers = [
     "getAllFilesBySiteId" => "linkcms1\Models\UploadedFile",
     "handleUploadRequest" => "linkcms1\Models\UploadedFile",
     "handleCKEditorUploadRequest" => "linkcms1\Models\UploadedFile",
+    "handleSaveImageData" => "linkcms1\Models\UploadedFile",
     "getAllDefinitions" => "linkcms1\Models\ConfigurationDefinition",
     "handleSaveOrUpdateConfigurationDefinition" => "linkcms1\Models\ConfigurationDefinition",
     "getNavigationsBySiteId" => "linkcms1\Models\Navigation",
