@@ -125,9 +125,15 @@ class domainControl extends Model {
             $this->logger->warning('Adresa '.$_SERVER['SITE_DOMAIN'].$path." nenalezena");
 
             // Můžete vrátit null nebo jinou výchozí hodnotu
-            return null;
+            return [
+            0,                           // Default ID
+            $siteDomain,           // Domain
+            '/404',                          // URL Path again
+            'fnc404',                    // Handler Function
+            '404',                       // Model
+            1
+            ];
         }
-        \Tracy\Debugger::barDump($url->toArray(), 'aktuální url');
         return $url->toArray();
     }
         
@@ -318,6 +324,8 @@ class domainControl extends Model {
     }
 
     public function noweb() {}
+    public function fnc404() {}
+
     public function favicon(){
         $customFaviconUrl = $_SERVER["SITE_WEB"]."/data/images/".$_SERVER["SITE_DOMAIN"]."/".$_SERVER["domain"]["fav_ico"];
         $defaultFavicon = "https://mini-web.cz/templates/mini-web/images/favicon.png";  // Cesta k vaší defaultní favicon
@@ -333,6 +341,8 @@ class domainControl extends Model {
             exit;
         }
     }
+
+    
 }
 
 ?>

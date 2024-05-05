@@ -197,6 +197,7 @@ $handlers = [
     "loadDomain" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "favicon" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "fnc404" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
