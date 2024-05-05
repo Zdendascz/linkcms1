@@ -10,7 +10,7 @@ use Monolog\Logger;
 use Tracy\Debugger;
 use Illuminate\Database\Eloquent\Model;
 
-Debugger::enable(Debugger::DEVELOPMENT);
+//Debugger::enable(Debugger::DEVELOPMENT);
 
 /**
  * Třída reprezentující web, zpracovává kontrolu domény a informace o ní.

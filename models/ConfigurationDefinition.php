@@ -11,7 +11,7 @@ use PHPAuth\Auth as PHPAuth;
 use Monolog\Logger;
 use Tracy\Debugger;
 
-Debugger::enable(Debugger::DEVELOPMENT);
+//Debugger::enable(Debugger::DEVELOPMENT);
 $dbh = new PDO(
     'mysql:host=' . $_SERVER['DB_HOST'] . ';dbname=' . $_SERVER['DB_NAME'],
     $_SERVER['DB_USER'],

@@ -14,7 +14,7 @@ use Monolog\Handler\StreamHandler;
 use Tracy\Debugger;
 use DateTime;
 
-Debugger::enable(Debugger::DEVELOPMENT);
+//Debugger::enable(Debugger::DEVELOPMENT);
 $dbh = new PDO(
     'mysql:host=' . $_SERVER['DB_HOST'] . ';dbname=' . $_SERVER['DB_NAME'],
     $_SERVER['DB_USER'],
