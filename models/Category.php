@@ -94,15 +94,22 @@ class Category extends Model
      *                  ]
      * @return void
      */
-    public static function generateNavigation($siteId, $navigation_id = null, $parentId = null, $navigationSpecifications = false) {
+    public static function generateNavigation($siteId, $navigation_id = null, $parentId = null, $navigationSpecifications = false, $rekurze=false) {
         $insertUl = "";
+        $insertSubUl = "";
+        $html = "";
+        
         if (isset($navigationSpecifications)) {
-            if (isset($navigationSpecifications["ul_class"])) $insertUl .= " class='" . $navigationSpecifications["ul_class"] . "'";
-            if (isset($navigationSpecifications["ul_id"])) $insertUl .= " id='" . $navigationSpecifications["ul_id"] . "'";
-            if (isset($navigationSpecifications["ul_style"])) $insertUl .= " style='" . $navigationSpecifications["ul_style"] . "'";
+            if (isset($navigationSpecifications["ul_class"]) && !empty($navigationSpecifications["ul_class"])) $insertUl .= " class='" . $navigationSpecifications["ul_class"] . "'";
+            if (isset($navigationSpecifications["ul_id"]) && !empty($navigationSpecifications["ul_id"])) $insertUl .= " id='" . $navigationSpecifications["ul_id"] . "'";
+            if (isset($navigationSpecifications["ul_style"]) && !empty($navigationSpecifications["ul_style"])) $insertUl .= " style='" . $navigationSpecifications["ul_style"] . "'";
+
+            if (isset($navigationSpecifications["sub_ul_class"]) && !empty($navigationSpecifications["sub_ul_class"])) $insertSubUl .= " class='" . $navigationSpecifications["sub_ul_class"] . "'";
+            if (isset($navigationSpecifications["sub_ul_id"]) && !empty($navigationSpecifications["sub_ul_id"])) $insertSubUl .= " id='" . $navigationSpecifications["sub_ul_id"] . "'";
+            if (isset($navigationSpecifications["sub_ul_style"]) && !empty($navigationSpecifications["sub_ul_style"])) $insertSubUl .= " style='" . $navigationSpecifications["sub_ul_style"] . "'";
         }
-    
-        $html = '<ul' . $insertUl . '>';
+        if(!$rekurze) $html = '<ul' . $insertUl . '>';
+
         $categories = self::where('parent_id', $parentId)
                         ->where('site_id', $siteId)
                         ->where('navigation_id', $navigation_id)
@@ -120,15 +127,21 @@ class Category extends Model
     
             // Check if this category has children and sub_ul attribute is 1
             $childCategories = self::where('parent_id', $category->id)->where('site_id', $siteId)->where('is_active', 'active')->get();
-            if (count($childCategories) > 0 && (isset($navigationSpecifications['sub_ul']) && $navigationSpecifications['sub_ul'] == 1)) {
-                $childHtml = self::generateNavigation($siteId, $navigation_id, $category->id, $navigationSpecifications); // propagate specifications to children
+            // Send SQL and bindings to Tracy
+            
+            if (count($childCategories) > 0 ) {
+                $childHtml = self::generateNavigation($siteId, $navigation_id, $category->id, $navigationSpecifications, true); // propagate specifications to children
+                if($navigationSpecifications['sub_ul'] == 1)
+                    $html .= "<ul ".$insertSubUl." >".$childHtml."</ul>";
+                else
                 $html .= $childHtml; // childHtml should include <ul> only if children exist
             }
     
             $html .= '</li>';
         }
     
-        $html .= '</ul>';
+        if(!$rekurze) $html .= '</ul>';
+        
         return $html;
     }
     
@@ -369,7 +382,6 @@ class Category extends Model
             exit;
         }
     }
-    // Další metody a logika pro model mohou být zde
     
     /**
      * getUrlsWithTitle
