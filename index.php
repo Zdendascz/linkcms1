@@ -536,6 +536,7 @@ $variables = [
     'webNavigations' => $webNavigations,
     'newArticles' => article::getLatestActiveArticles(),
     'popularArticles' => article::getArticlesByCategoryId(@$_SERVER["domain"]["popular_cat"]),
+    'sliderArticles' => article::getArticlesByCategoryId(@$_SERVER["SITE_CONFIGURATIONS"]["slider_cat"]["value"]),
     'actualUrl' => url::getCurrentUrl(),
     'get' => linkcms1\Models\Url::nactiBezpecneGetParametry()
 ];
