@@ -97,7 +97,7 @@ class UploadedFile extends Model {
                 }
             
                 // Generování a nahrávání miniatur, pokud je soubor obrázek
-                if (in_array(strtolower(pathinfo($name, PATHINFO_EXTENSION)), ['jpeg', 'jpg', 'png', 'gif'])) {
+                if (in_array(strtolower(pathinfo($name, PATHINFO_EXTENSION)), ['jpeg', 'jpg', 'png', 'gif', 'webp', 'svg'])) {
                     self::generateAndUploadThumbnails($tempPath, $name, $originalImageId);
                 }
             }
