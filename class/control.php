@@ -5,7 +5,9 @@ use linkcms1\Models\User as EloquentUser;
 use linkcms1\Models\Site;
 use linkcms1\Models\Url;
 use linkcms1\Models\Category;
+use SimpleXMLElement;
 use linkcms1\Models\Article;
+use linkcms1\Models\UploadedFile;
 use Monolog\Logger;
 use Tracy\Debugger;
 use Illuminate\Database\Eloquent\Model;
@@ -342,6 +344,155 @@ class domainControl extends Model {
         }
     }
 
+    public function robotsTxt() {
+        $customRobotsTxtUrl = $_SERVER["SITE_WEB"]."/data/".$_SERVER["SITE_DOMAIN"]."/robots.txt";
+        $defaultRobotsTxtPath = $_SERVER['DOCUMENT_ROOT'] . "/templates/mini-web/robots.txt"; // Cesta k vaší defaultní robots.txt
+    
+        // Zkuste získat hlavičky pro specifický robots.txt
+        $headers = @get_headers($customRobotsTxtUrl);
+        if ($headers && strpos($headers[0], '200')) {
+            header('Location: ' . $customRobotsTxtUrl);
+            exit;
+        } else {
+            header('Content-Type: text/plain');
+            readfile($defaultRobotsTxtPath);
+            exit;
+        }
+    }
+
+    public function generateCategorySitemap() {
+        $site_id = $_SERVER["SITE_ID"];
+        
+        // Získání všech aktivních kategorií pro dané site_id pomocí Eloquentu
+        $categories = Category::where('site_id', $site_id)
+                            ->where('is_active', 'active')
+                            ->get();
+        
+        // Inicializace XML
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset></urlset>');
+        $xml->addAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+        
+        // Přidání kategorií do XML
+        foreach ($categories as $category) {
+            $url = $xml->addChild('url');
+            $url->addChild('loc', htmlspecialchars($category->url));
+            $url->addChild('lastmod', date('Y-m-d', strtotime($category->updated_at)));
+            $url->addChild('changefreq', 'weekly');
+            $url->addChild('priority', '0.8');
+        }
+        
+        // Nastavení hlaviček pro XML výstup
+        header('Content-Type: application/xml');
+        echo $xml->asXML();
+        exit;
+    }
+
+    public function generateArticleSitemap() {
+        $site_id = $_SERVER["SITE_ID"];
+        $domain = $_SERVER["SITE_DOMAIN"];
+        // Získání všech aktivních článků pro dané site_id
+        $articles = Article::where('site_id', $site_id)
+                    ->where('status', 'active')
+                    ->get();
+    
+        // Inicializace XML
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset></urlset>');
+        $xml->addAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+    
+        // Přidání článků do XML
+        foreach ($articles as $article) {
+            // Získání URL pro daný článek z tabulky 'urls'
+            $urlRecord = Url::where('model', 'articles')
+                            ->where('model_id', $article->id)
+                            ->first();
+    
+            if ($urlRecord) {
+                $url = $xml->addChild('url');
+                $fullUrl = 'https://' . $domain . $urlRecord->url;
+                $url->addChild('loc', htmlspecialchars($fullUrl));
+                $url->addChild('lastmod', date('Y-m-d', strtotime($article->updated_at)));
+                $url->addChild('changefreq', 'monthly');
+                $url->addChild('priority', '0.8');
+            }
+        }
+    
+        // Nastavení hlaviček pro XML výstup
+        header('Content-Type: application/xml');
+        echo $xml->asXML();
+        exit;
+    }
+    
+    public function generateImageSitemap()
+    {
+        $siteId = $_SERVER['SITE_ID'];
+        $domain = $_SERVER['SITE_DOMAIN'];
+
+        // Získání všech aktivních obrázků pro dané site_id
+        $images = UploadedFile::where('site_id', $siteId)
+                            ->where('status', 'active')
+                            ->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                            ->with('variants')
+                            ->get();
+
+        // Inicializace XML
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset></urlset>');
+        $xml->addAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+        $xml->addAttribute('xmlns:image', 'http://www.google.com/schemas/sitemap-image/1.1');
+
+        // Přidání obrázků do XML
+        foreach ($images as $image) {
+            $url = $xml->addChild('url');
+            $fullUrl = 'https://' . $domain . $image->file_path;
+            $url->addChild('loc', htmlspecialchars($fullUrl));
+            $url->addChild('lastmod', date('Y-m-d', strtotime($image->updated_at)));
+            $url->addChild('changefreq', 'monthly');
+            $url->addChild('priority', '0.5');
+
+            // Přidání hlavního obrázku
+            $imageTag = $url->addChild('image:image', null, 'http://www.google.com/schemas/sitemap-image/1.1');
+            $imageTag->addChild('image:loc', htmlspecialchars($image->public_url), 'http://www.google.com/schemas/sitemap-image/1.1');
+
+            // Přidání variant obrázku
+            foreach ($image->variants as $variant) {
+                $variantTag = $url->addChild('image:image', null, 'http://www.google.com/schemas/sitemap-image/1.1');
+                $variantTag->addChild('image:loc', htmlspecialchars($variant->public_url), 'http://www.google.com/schemas/sitemap-image/1.1');
+            }
+        }
+
+        // Nastavení hlaviček pro XML výstup
+        header('Content-Type: application/xml');
+        echo $xml->asXML();
+        exit;
+    }
+
+    public function generateSitemapIndex() {
+        $domain = $_SERVER['SITE_DOMAIN'];
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
+    
+        // Inicializace XML
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><sitemapindex></sitemapindex>');
+        $xml->addAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+    
+        // Přidání cesty k sitemap kategorií
+        $sitemap = $xml->addChild('sitemap');
+        $sitemap->addChild('loc', $protocol . $domain . '/sitemap-categories.xml');
+        $sitemap->addChild('lastmod', date('Y-m-d'));
+    
+        // Přidání cesty k sitemap článků
+        $sitemap = $xml->addChild('sitemap');
+        $sitemap->addChild('loc', $protocol . $domain . '/sitemap-articles.xml');
+        $sitemap->addChild('lastmod', date('Y-m-d'));
+    
+        // Přidání cesty k sitemap obrázků
+        $sitemap = $xml->addChild('sitemap');
+        $sitemap->addChild('loc', $protocol . $domain . '/sitemap-images.xml');
+        $sitemap->addChild('lastmod', date('Y-m-d'));
+    
+        // Nastavení hlaviček pro XML výstup
+        header('Content-Type: application/xml');
+        echo $xml->asXML();
+        exit;
+    }
     
 }
 

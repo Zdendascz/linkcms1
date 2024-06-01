@@ -148,15 +148,13 @@ if($auth->isLogged()){
     if ($userId) {
         $rolesCollection = $admin->getUserRoles($userId);
         $userRoles = $rolesCollection ? $rolesCollection->toArray() : [];
-        Tracy\Debugger::barDump('Přihlášený uživatel');
+        Tracy\Debugger::barDump($userRoles, 'Role uživatele - uživatel přihlášen');
     }
 } else {
     $userRoles = [];
     $userId = null;
     Tracy\Debugger::barDump('Uživatel není přihlášen');
 }
-
-Tracy\Debugger::barDump($userRoles, 'Role uživatele');
 
 foreach($_SERVER as $key => $value){
     if(strpos($key, "SITE_") !== false){
@@ -198,6 +196,11 @@ $handlers = [
     "favicon" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "fnc404" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "robotsTxt" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "generateCategorySitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "generateArticleSitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "generateImageSitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "generateSitemapIndex" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "handleCreateUrlRequest" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "roleFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
     "permissionFormHandler" => array("\linkcms1\adminControl",array($capsule,$logger,$auth)),
@@ -213,6 +216,7 @@ switch ($routeInfo[0]) {
         // ... 404 Not Found
         Tracy\Debugger::barDump($routeInfo[0], 'Stránka nebyla nalezena');        
         $logger->warning('Požadovaná stránka '.$uri." nebyla nalezena s metodou ".$httpMethod);
+        header("HTTP/1.1 404 Not Found");
         break;
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
         $allowedMethods = $routeInfo[1];
@@ -236,6 +240,9 @@ switch ($routeInfo[0]) {
             $vars = array_values($vars);
             Tracy\Debugger::barDump($vars, 'Vars');
             $methodName = $vars[4];
+            if($methodName == "fnc404"){
+                header("HTTP/1.1 404 Not Found");       
+            }
 
             // Kontrola existence handleru v poli $handlers
             if (array_key_exists($methodName, $handlers)) {
@@ -256,11 +263,8 @@ switch ($routeInfo[0]) {
                 // Zde můžete přidat další kód pro zpracování této situace
             }
 
-            Tracy\Debugger::barDump([$instance, $methodName], 'Instance');
             $displayData = call_user_func_array([$instance, $methodName], array($vars[6]));
-            
-
-            
+                        
             // Převod výsledků na pole, pokud jsou vráceny jako Eloquent Collection
             if ($displayData instanceof Illuminate\Database\Eloquent\Collection) {
                 $displayData = $displayData->toArray();
