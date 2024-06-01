@@ -374,11 +374,13 @@ class domainControl extends Model {
         
         // Přidání kategorií do XML
         foreach ($categories as $category) {
-            $url = $xml->addChild('url');
-            $url->addChild('loc', htmlspecialchars($category->url));
-            $url->addChild('lastmod', date('Y-m-d', strtotime($category->updated_at)));
-            $url->addChild('changefreq', 'weekly');
-            $url->addChild('priority', '0.8');
+            if (!empty($category->url)) {
+                $url = $xml->addChild('url');
+                $url->addChild('loc', htmlspecialchars($category->url));
+                $url->addChild('lastmod', date('Y-m-d', strtotime($category->updated_at)));
+                $url->addChild('changefreq', 'weekly');
+                $url->addChild('priority', '0.8');
+            }
         }
         
         // Nastavení hlaviček pro XML výstup
