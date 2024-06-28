@@ -152,6 +152,7 @@ class Article extends Model {
                         'description' => $data['meta']['description'] ?? '',
                         'keywords' => $data['meta']['keywords'] ?? '',
                         'content_typ' => $data['meta']['content_typ'] ?? '',
+                        'mainCatid' => $data['mainCatid'] ?? '',
                     ]),
                     'publish_at' => $publishAt,
                     'publish_end_at' => $publishEndAt,
@@ -417,6 +418,7 @@ class Article extends Model {
                 'description' => $metaData['description'] ?? '',
                 'keywords' => $metaData['keywords'] ?? '',
                 'content_typ' => $metaData['content_typ'] ?? '',
+                'mainCatid' => $metaData['mainCatid'] ?? '',
             ],
             // Přidání dalších polí, pokud je potřebujete
             'subtitle' => $article->subtitle,
