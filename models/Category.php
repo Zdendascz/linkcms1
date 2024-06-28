@@ -374,20 +374,21 @@ class Category extends Model
             // Volání metody pro uložení nebo aktualizaci kategorie
             $result = Category::saveOrUpdate($postData);
 
-            if ($result['status']) {
+            if (isset($result['status']) and $result['status'] == true) {
                 // Úspěch: Přesměrování s úspěšnou zprávou
-                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=success&message=' . urlencode($result['message']));
+                $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=success&message=' . urlencode($result['message']) : $_SERVER['HTTP_REFERER'] . '?status=success&message=' . urlencode($result['message']);
+                header('Location: ' . $redirectUrl);
                 exit;
             } else {
                 // Neúspěch: Přesměrování s chybovou zprávou
-                $this->logger->warning($result['message']);
-                header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode($result['message']));
+                $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=error&message=' . urlencode($result['message']) : $_SERVER['HTTP_REFERER'] . '?status=error&message=' . urlencode($result['message']);
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         } else {
             // Pokud data nebyla odeslána metodou POST, přesměrování zpět s chybovou zprávou
-            $this->logger->warning('Neplatný požadavek přo volání metody handleSaveOrUpdateCategory');
-            header('Location: '.$_SERVER['HTTP_REFERER'].'?status=error&message=' . urlencode('Neplatný požadavek'));
+            $redirectUrl = strpos($_SERVER['HTTP_REFERER'], '?') !== false ? $_SERVER['HTTP_REFERER'] . '&status=error&message=' . urlencode('Neplatný požadavek') : $_SERVER['HTTP_REFERER'] . '?status=error&message=' . urlencode('Neplatný požadavek');
+            header('Location: ' . $redirectUrl);
             exit;
         }
     }
