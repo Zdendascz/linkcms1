@@ -184,13 +184,9 @@ class Article extends Model {
     
             // Zpracování URL pouze pokud se jedná o nový článek
             if (empty($data['id'])) {
-                $safeTitle = self::createSafeTitle($data['url']); // Implementujte podle vašich pravidel
-                if (substr($safeTitle, 0, 1) !== '/') {
-                    $urlPath = '/' . $safeTitle;
-                } else {
-                    $urlPath = $safeTitle;
-                }
-                $urlProcessResult = self::processUrlForArticle($article, $urlPath);
+                //$safeTitle = self::createSafeTitle($data['url']); // Implementujte podle vašich pravidel
+
+                $urlProcessResult = self::processUrlForArticle($article, $data['url']);
         
                 if (is_array($urlProcessResult) && !$urlProcessResult['success']) {
                     DB::rollBack();
@@ -236,59 +232,77 @@ class Article extends Model {
      * @param string $urlPath Cesta URL
      */
     protected static function processUrlForArticle($article, $urlPath) {
-        $parsedUrl = parse_url($urlPath);
-        $path = $parsedUrl['path'] ?? '';
+        $logger = self::getLogger();
     
-        // Najde existující URL pro daný článek
-        $existingUrl = Url::where('model', 'articles')
-                          ->where('domain', '=', $_SERVER['HTTP_HOST'])
-                          ->where('model_id', $article->id)
-                          ->first();
+        try {
+            $parsedUrl = parse_url($urlPath);
+            $path = $parsedUrl['path'] ?? '';
     
-        // Pokud existuje URL a je shodná s novou URL, nic se neděje
-        if ($existingUrl && $existingUrl->url === $path) {
-            return true;
-        }
+            $logger->info("Processing URL for article", ['article_id' => $article->id, 'urlPath' => $urlPath]);
     
-        // Kontrola existence jiného záznamu s novou URL
-        $urlConflict = Url::where('url', $path)
-                          ->where('domain', '=', $_SERVER['HTTP_HOST'])
-                          ->where('model', '!=', 'articles')
-                          ->orWhere(function($query) use ($path, $article) {
-                              $query->where('url', $path)
-                                    ->where('model', '=', 'articles')
-                                    ->where('model_id', '!=', $article->id);
-                          })
-                          ->first();
-    
-        if ($urlConflict) {
-            // Existuje konflikt URL, vrátí chybu s ID konfliktního záznamu
-            echo $_SERVER['HTTP_HOST']." >>> ".$path;
-            die();
-            return ['success' => false, 'message' => 'URL už existuje: url_id'.$urlConflict->id];
-        }
-    
-        if ($existingUrl) {
-            // Aktualizace stávajícího URL záznamu
-            $existingUrl->url = $path;
-            $existingUrl->save();
-        } else {
-            // Vytvoření nového URL záznamu, pokud neexistuje
-            $domain = $_SERVER['HTTP_HOST'];
+            // Doména z HTTP hlavičky
+            $domain = preg_replace('/^(http:\/\/|https:\/\/)/', '', $_SERVER['HTTP_HOST']);
             $domain = preg_replace('/^www\./', '', $domain);
-            $domain = explode(':', $domain)[0];
+            $domain = rtrim($domain, '/');
     
-            $newUrl = new Url;
-            $newUrl->domain = $domain;
-            $newUrl->url = $path;
-            $newUrl->handler = 'getArticleDetails';
-            $newUrl->model = 'articles';
-            $newUrl->model_id = $article->id;
-            $newUrl->save();
+            // Najde existující URL pro daný článek
+            $existingUrl = Url::where('model', 'articles')
+                              ->where('domain', '=', $domain)
+                              ->where('model_id', $article->id)
+                              ->first();
+    
+            // Pokud existuje URL a je shodná s novou URL, nic se neděje
+            if ($existingUrl && $existingUrl->url === $path) {
+                $logger->info("Existing URL matches new URL", ['url' => $path]);
+                return true;
+            }
+    
+            // Kontrola existence jiného záznamu s novou URL
+            $urlConflict = Url::where('url', $path)
+                              ->where('domain', '=', $domain)
+                              ->where(function ($query) use ($article) {
+                                  $query->where('model', '!=', 'articles')
+                                        ->orWhere(function ($query) use ($article) {
+                                            $query->where('model', 'articles')
+                                                  ->where('model_id', '!=', $article->id);
+                                        });
+                              })
+                              ->first();
+    
+            if ($urlConflict) {
+                $logger->warning("URL conflict detected", ['url' => $path, 'conflict_id' => $urlConflict->id]);
+                // Existuje konflikt URL, vrátí chybu s ID konfliktního záznamu
+                return ['success' => false, 'message' => 'URL už existuje: url_id' . $urlConflict->id];
+            }
+    
+            if ($existingUrl) {
+                // Aktualizace stávajícího URL záznamu
+                $existingUrl->url = $path;
+                $existingUrl->save();
+                $logger->info("Existing URL updated", ['url' => $path]);
+            } else {
+                // Vytvoření nového URL záznamu, pokud neexistuje
+                $newUrl = new Url;
+                $newUrl->domain = $domain;
+                $newUrl->url = $path;
+                $newUrl->handler = 'getArticleDetails';
+                $newUrl->model = 'articles';
+                $newUrl->model_id = $article->id;
+                $newUrl->save();
+                $logger->info("New URL created", ['url' => $path, 'article_id' => $article->id]);
+            }
+    
+            return true;
+        } catch (Exception $e) {
+            $logger->error("Error processing URL for article", [
+                'article_id' => $article->id,
+                'urlPath' => $urlPath,
+                'exception' => $e->getMessage()
+            ]);
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
-    
-        return true;
     }
+    
 
     public function handleSaveOrUpdateArticle() {
         // Kontrola, zda byla data odeslána metodou POST
