@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use linkcms1\Models\ArticleCategory;
 use linkcms1\Models\ArticleImage;
 use linkcms1\Models\Url;
+use linkcms1\Models\Category;
 use PHPAuth\Config as PHPAuthConfig;
 use PHPAuth\Auth as PHPAuth;
 use Monolog\Logger;
@@ -340,7 +341,7 @@ class Article extends Model {
      */
     public static function getAllArticlesWithCategories() {
         // Přidání podmínky where do dotazu pro filtraci článků podle site_id
-        $articles = self::with('categories')->where('site_id', $_SERVER["SITE_ID"])->get();
+        $articles = self::with('categories')->where('site_id', $_SERVER["SITE_ID"])->orderBy('created_at', 'desc')->get();
     
         // Transformace 'meta' dat z JSON na PHP pole pro každý článek, pokud ještě nejsou pole
         $articles->transform(function ($article) {
@@ -357,6 +358,14 @@ class Article extends Model {
             // Přidání informací o souborech a obrázcích k článku
             $article->files = $filesAndImages['files'];
             $article->images = $filesAndImages['images'];
+
+            // Pokud je v meta parametr 'mainCatid', načtení a přidání informací o kategorii
+            if (!empty($article->meta['mainCatid'])) {
+                $categoryInfo = Category::getCategoryInfo($article->meta['mainCatid']);
+                $article->mainCategoryInfo = $categoryInfo;
+            } else {
+                $article->mainCategoryInfo = null;
+            }
     
             return $article;
         });
