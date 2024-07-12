@@ -722,6 +722,12 @@ class Article extends Model {
     
         return $articles;
     }
+
+    // Definice vztahu k modelu User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
 
 ?>

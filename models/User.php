@@ -7,6 +7,11 @@ class User extends Model
 {
     protected $table = 'users';
     // Ostatní definice modelu...
+
+    public function articles()
+    {
+        return $this->hasMany(Article::class);
+    }
 }
 
 ?>
