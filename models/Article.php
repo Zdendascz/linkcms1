@@ -691,7 +691,7 @@ class Article extends Model {
         // Načtení deseti nejnovějších článků se stavem 'active' pro daný site_id
         $articles = Article::where('site_id', $siteId)
                            ->where('status', 'active')
-                           ->with('categories') // Načtení kategorií pro každý článek
+                           ->with(['categories', 'url', 'user', 'images.file']) // Načtení kategorií pro každý článek
                            ->orderBy('created_at', 'desc') // Řazení článků od nejnovějšího
                            ->limit(10) // Omezení výsledku na 10 článků
                            ->get();
@@ -710,12 +710,25 @@ class Article extends Model {
             // Přidání informací o souborech a obrázcích k článku
             $article->files = $filesAndImages['files'];
             $article->images = $filesAndImages['images'];
-
-            // Volání metody z třídy Url pro získání URL
+    
+            // Získání URL pro aktuální článek
             $articleUrl = Url::getUrlByModelAndId('articles', $article->id);
-
+    
             // Přidání URL do výstupu článku
             $article->url = $articleUrl;
+    
+            // Transformace kategorií
+            $article->categories = $article->categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'display_name' => $category->display_name,
+                    'top_text' => $category->top_text,
+                    'bottom_text' => $category->bottom_text,
+                    'url' => $category->url,
+                    'meta' => is_string($category->meta) ? json_decode($category->meta, true) : $category->meta,
+                ];
+            });
     
             return $article;
         });
@@ -728,6 +741,98 @@ class Article extends Model {
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public static function getAdjacentArticles($currentArticleId) {
+        $siteId = $_SERVER["SITE_ID"];
+        
+        // Načtení aktuálního článku pro získání jeho hlavní kategorie a datumu publikace
+        $currentArticle = Article::with(['url', 'user', 'images.file', 'categories'])
+                                 ->where('site_id', $siteId)
+                                 ->where('id', $currentArticleId)
+                                 ->first();
+        
+        if (!$currentArticle || is_null($currentArticle->meta)) {
+            return null; // Pokud článek neexistuje nebo nemá meta data
+        }
+    
+        // Dekódování meta dat a získání hlavní kategorie
+        $currentArticleMeta = is_string($currentArticle->meta) ? json_decode($currentArticle->meta, true) : $currentArticle->meta;
+        $mainCategoryId = $currentArticleMeta['mainCatid'] ?? null;
+        
+        if (is_null($mainCategoryId)) {
+            return null; // Pokud článek nemá definovanou hlavní kategorii
+        }
+    
+        $publishedDate = $currentArticle->created_at;
+    
+        // Načtení předchozího článku
+        $previousArticle = Article::where('site_id', $siteId)
+                                  ->where('status', 'active')
+                                  ->where('created_at', '<', $publishedDate)
+                                  ->whereHas('categories', function ($query) use ($mainCategoryId) {
+                                      $query->where('id', $mainCategoryId);
+                                  })
+                                  ->with(['categories', 'url', 'user', 'images.file'])
+                                  ->orderBy('created_at', 'desc')
+                                  ->first();
+        
+        // Načtení následujícího článku
+        $nextArticle = Article::where('site_id', $siteId)
+                              ->where('status', 'active')
+                              ->where('created_at', '>', $publishedDate)
+                              ->whereHas('categories', function ($query) use ($mainCategoryId) {
+                                  $query->where('id', $mainCategoryId);
+                              })
+                              ->with(['categories', 'url', 'user', 'images.file'])
+                              ->orderBy('created_at', 'asc')
+                              ->first();
+    
+        $adjacentArticles = collect([$previousArticle, $nextArticle]);
+    
+        // Transformace výsledků pro načtení meta dat a souborů
+        $adjacentArticles->transform(function ($article) {
+            if (is_null($article)) {
+                return null;
+            }
+    
+            if (is_string($article->meta)) {
+                $article->meta = json_decode($article->meta, true);
+            } elseif (is_null($article->meta)) {
+                $article->meta = [];
+            }
+    
+            // Získání dat o souborech a obrázcích pro aktuální článek
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+    
+            // Přidání informací o souborech a obrázcích k článku
+            $article->files = $filesAndImages['files'];
+            $article->images = $filesAndImages['images'];
+    
+            // Získání URL pro aktuální článek
+            $articleUrl = Url::getUrlByModelAndId('articles', $article->id);
+    
+            // Přidání URL do výstupu článku
+            $article->url = $articleUrl;
+    
+            // Transformace kategorií
+            $article->categories = $article->categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'display_name' => $category->display_name,
+                    'top_text' => $category->top_text,
+                    'bottom_text' => $category->bottom_text,
+                    'url' => $category->url,
+                    'meta' => is_string($category->meta) ? json_decode($category->meta, true) : $category->meta,
+                ];
+            });
+    
+            return $article;
+        });
+    
+        return $adjacentArticles;
+    }
+    
 }
 
 ?>

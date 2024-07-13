@@ -488,6 +488,7 @@ switch ($routeInfo[0]) {
                 case 'articles' : {
                     $catData = new linkcms1\Models\Category();
                     $pageData = $catData->getCategoryInfo($vars[6]);
+                    $displayData["prewNextArticle"] = \linkcms1\Models\Article::getAdjacentArticles($vars[6]);
 
                     $renderPage = "article.twig";
                     break;

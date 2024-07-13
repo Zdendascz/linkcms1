@@ -202,7 +202,7 @@ class Category extends Model
                 'top_text' => $cat->top_text,
                 'bottom_text' => $cat->bottom_text,
                 'url' => $cat->url,
-                'meta' => $cat->meta
+                'meta' => json_decode($cat->meta, true)
 
                 
                 // lze přidat další požadované atributy
@@ -217,7 +217,7 @@ class Category extends Model
                 'top_text' => $category->top_text,
                 'bottom_text' => $category->bottom_text,
                 'url' => $category->url,
-                'meta' => $category->meta
+                'meta' => json_decode($category->meta, true)
                 // přidejte další požadované atributy
             ],
             'pathInfo' => $pathInfo
