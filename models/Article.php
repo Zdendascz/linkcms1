@@ -457,11 +457,12 @@ class Article extends Model {
      * @return void
      */
     function getActiveArticlesByCategoryWithUrlAndAuthor($categoryId) {
-        $articles = Article::with(['url', 'user', 'images.file'])
+        $articles = Article::with(['url', 'user', 'images.file', 'categories'])
                     ->whereHas('categories', function ($query) use ($categoryId) {
                         $query->where('id', $categoryId);
                     })
                     ->where('status', 'active')
+                    ->orderBy('publish_at', 'desc') // Řazení dle data publikace od nejnovějších
                     ->get();
     
         return $articles->map(function ($article) {
@@ -470,12 +471,24 @@ class Article extends Model {
                 'id' => $article->id,
                 'title' => $article->title,
                 'url' => $article->url ? $article->url->url : null,
+                'snippet' => $article->snippet,
+                'meta' => is_string($article->meta) ? json_decode($article->meta, true) : $article->meta,
                 'author_name' => $article->user ? $article->user->name : 'Unknown',
                 'files' => $filesAndImages['files'], // Přidání dat o souborech
                 'images' => $filesAndImages['images'], // Přidání dat o obrázcích
+                'categories' => $article->categories->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'title' => $category->title,
+                        'display_name' => $category->display_name,
+                        'top_text' => $category->top_text,
+                        'bottom_text' => $category->bottom_text,
+                        'url' => $category->url,
+                        'meta' => is_string($category->meta) ? json_decode($category->meta, true) : $category->meta,
+                    ];
+                })->toArray(), // Přidání dat o kategoriích
             ];
     
-            // Zde doplňte logiku pro naplnění 'files', pokud je potřeba
             return $articleData;
         });
     }
