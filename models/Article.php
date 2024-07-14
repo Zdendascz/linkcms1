@@ -395,7 +395,7 @@ class Article extends Model {
     
         // Získání informací o kategoriích včetně id a názvu
         $categories = $article->categories->map(function($category) {
-            return ['id' => $category->id, 'name' => $category->title];
+            return ['id' => $category->id, 'name' => $category->title, 'url' => $category->url];
         })->toArray();
 
         // Dynamické sestavení celé URL
@@ -439,7 +439,7 @@ class Article extends Model {
             'publish_at' => $publishAt,
             'publish_end_at' => $publishEndAt,
             'last_modified_at' => $lastModifiedAt,
-            
+            'mainCatInfo' => Category::getCategoryInfo($metaData['mainCatid']),
         ];
     
         return $data;
@@ -782,6 +782,90 @@ class Article extends Model {
                               ->where('created_at', '>', $publishedDate)
                               ->whereHas('categories', function ($query) use ($mainCategoryId) {
                                   $query->where('id', $mainCategoryId);
+                              })
+                              ->with(['categories', 'url', 'user', 'images.file'])
+                              ->orderBy('created_at', 'asc')
+                              ->first();
+    
+        $adjacentArticles = collect([$previousArticle, $nextArticle]);
+    
+        // Transformace výsledků pro načtení meta dat a souborů
+        $adjacentArticles->transform(function ($article) {
+            if (is_null($article)) {
+                return null;
+            }
+    
+            if (is_string($article->meta)) {
+                $article->meta = json_decode($article->meta, true);
+            } elseif (is_null($article->meta)) {
+                $article->meta = [];
+            }
+    
+            // Získání dat o souborech a obrázcích pro aktuální článek
+            $filesAndImages = self::getArticleFilesAndImages($article->id);
+    
+            // Přidání informací o souborech a obrázcích k článku
+            $article->files = $filesAndImages['files'];
+            $article->images = $filesAndImages['images'];
+    
+            // Získání URL pro aktuální článek
+            $articleUrl = Url::getUrlByModelAndId('articles', $article->id);
+    
+            // Přidání URL do výstupu článku
+            $article->url = $articleUrl;
+    
+            // Transformace kategorií
+            $article->categories = $article->categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'display_name' => $category->display_name,
+                    'top_text' => $category->top_text,
+                    'bottom_text' => $category->bottom_text,
+                    'url' => $category->url,
+                    'meta' => is_string($category->meta) ? json_decode($category->meta, true) : $category->meta,
+                ];
+            });
+    
+            return $article;
+        });
+    
+        return $adjacentArticles;
+    }
+    
+    public static function getAdjacentArticlesByCategory($currentArticleId) {
+        $siteId = $_SERVER["SITE_ID"];
+        
+        // Načtení aktuálního článku pro získání jeho kategorií a datumu publikace
+        $currentArticle = Article::with(['url', 'user', 'images.file', 'categories'])
+                                 ->where('site_id', $siteId)
+                                 ->where('id', $currentArticleId)
+                                 ->first();
+        
+        if (!$currentArticle || $currentArticle->categories->isEmpty()) {
+            return null; // Pokud článek neexistuje nebo nemá žádné kategorie
+        }
+    
+        $categoryIds = $currentArticle->categories->pluck('id')->toArray();
+        $publishedDate = $currentArticle->created_at;
+    
+        // Načtení předchozího článku ve stejné kategorii
+        $previousArticle = Article::where('site_id', $siteId)
+                                  ->where('status', 'active')
+                                  ->where('created_at', '<', $publishedDate)
+                                  ->whereHas('categories', function ($query) use ($categoryIds) {
+                                      $query->whereIn('id', $categoryIds);
+                                  })
+                                  ->with(['categories', 'url', 'user', 'images.file'])
+                                  ->orderBy('created_at', 'desc')
+                                  ->first();
+        
+        // Načtení následujícího článku ve stejné kategorii
+        $nextArticle = Article::where('site_id', $siteId)
+                              ->where('status', 'active')
+                              ->where('created_at', '>', $publishedDate)
+                              ->whereHas('categories', function ($query) use ($categoryIds) {
+                                  $query->whereIn('id', $categoryIds);
                               })
                               ->with(['categories', 'url', 'user', 'images.file'])
                               ->orderBy('created_at', 'asc')
