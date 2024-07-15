@@ -126,6 +126,7 @@ class adminControl {
         $repeatpassword = $postData['repeat_password'] ?? '';
         $fullname = $postData['fullname'] ?? '';
         $phone = $postData['phone'] ?? '';
+        $role_id = 5;
         // ... (extrakce ostatních polí) ...
 
         // Ověření platnosti e-mailu
@@ -147,7 +148,7 @@ class adminControl {
         }
 
         // Pokus o registraci uživatele
-        $result = $this->auth->register($email, $password, $repeatpassword);
+        $result = $this->auth->register($email, $password, $repeatpassword,$role_id);
 
         if ($result['error']) {
             // Registrace selhala
