@@ -15,6 +15,7 @@ use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use Tracy\Debugger;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 class Site extends Model
 {
@@ -124,65 +125,66 @@ class Site extends Model
         }
     }*/
 
-    public static function saveOrUpdate($data) {
-        // Příprava konfiguračních a analytických dat
-        $configurations = [];
-        if (isset($data['config_name']) && is_array($data['config_name'])) {
-            foreach ($data['config_name'] as $index => $name) {
-                if (isset($data['config_value'][$index])) {
-                    $configurations[] = [
-                        'name' => $name,
-                        'value' => $data['config_value'][$index],
-                        'description' => $data['config_description'][$index] ?? '',
-                    ];
-                }
+    public static function saveOrUpdate($data)
+{
+    // Příprava konfiguračních a analytických dat
+    $configurations = [];
+    if (isset($data['config_name']) && is_array($data['config_name'])) {
+        foreach ($data['config_name'] as $index => $name) {
+            if (isset($data['config_value'][$index])) {
+                $configurations[] = [
+                    'name' => $name,
+                    'value' => $data['config_value'][$index],
+                    'description' => $data['config_description'][$index] ?? '',
+                ];
             }
-        }
-        $data['configurations'] = json_encode($configurations);
-    
-        $analytics = [];
-        if (isset($data['analytics_name']) && is_array($data['analytics_name'])) {
-            foreach ($data['analytics_name'] as $index => $name) {
-                if (isset($data['analytics_value'][$index])) {
-                    $analytics[] = [
-                        'name' => $name,
-                        'value' => $data['analytics_value'][$index],
-                    ];
-                }
-            }
-        }
-        $data['analytics'] = json_encode($analytics);
-    
-        // Kontrola, zda ID existuje a není prázdné
-        if (isset($data['id']) && !empty($data['id'])) {
-            // Hledání a aktualizace existujícího záznamu
-            $site = self::find($data['id']);
-            if (!$site) {
-                return ['status' => false, 'message' => 'Stránka nebyla nalezena.'];
-            }
-        } else {
-            // Vytvoření nového záznamu
-            if (!isset($data['template_id']) || empty($data['template_id'])) {
-                return ['status' => false, 'message' => 'Template ID je povinné pro vytvoření nové stránky.'];
-            }
-            $site = new self();
-            $site->fill($data); // Předpřipravíme data
-            if (!$site->save()) {
-                return ['status' => false, 'message' => 'Nepodařilo se vytvořit novou stránku.'];
-            }
-
-            $data['id'] = $site->id; // Přiřadíme ID nově vytvořené stránky do dat
-            return self::processNewSiteWithTemplate($data); // Zpracujeme šablonu s novým ID
-        }
-    
-        // Nastavení a uložení dat
-        $site->fill($data);
-        if ($site->save()) {
-            return ['status' => true, 'message' => 'Stránka byla úspěšně uložena.'];
-        } else {
-            return ['status' => false, 'message' => 'Nepodařilo se uložit stránku.'];
         }
     }
+    $data['configurations'] = json_encode($configurations);
+
+    $analytics = [];
+    if (isset($data['analytics_name']) && is_array($data['analytics_name'])) {
+        foreach ($data['analytics_name'] as $index => $name) {
+            if (isset($data['analytics_value'][$index])) {
+                $analytics[] = [
+                    'name' => $name,
+                    'value' => $data['analytics_value'][$index],
+                ];
+            }
+        }
+    }
+    $data['analytics'] = json_encode($analytics);
+
+    // Kontrola, zda ID existuje a není prázdné
+    if (isset($data['id']) && !empty($data['id'])) {
+        // Hledání a aktualizace existujícího záznamu
+        $site = self::find($data['id']);
+        if (!$site) {
+            return ['status' => false, 'message' => 'Stránka nebyla nalezena.'];
+        }
+    } else {
+        // Vytvoření nového záznamu
+        if (!isset($data['template_id']) || empty($data['template_id'])) {
+            return ['status' => false, 'message' => 'Template ID je povinné pro vytvoření nové stránky.'];
+        }
+        $site = new self();
+        $site->fill($data); // Předpřipravíme data
+        if (!$site->save()) {
+            return ['status' => false, 'message' => 'Nepodařilo se vytvořit novou stránku.'];
+        }
+
+        $data['id'] = $site->id; // Přiřadíme ID nově vytvořené stránky do dat
+        return self::processNewSiteWithTemplate($data, $site); // Zpracujeme šablonu s novým ID
+    }
+
+    // Nastavení a uložení dat
+    $site->fill($data);
+    if ($site->save()) {
+        return ['status' => true, 'message' => 'Stránka byla úspěšně uložena.'];
+    } else {
+        return ['status' => false, 'message' => 'Nepodařilo se uložit stránku.'];
+    }
+}
 
     public function handleSaveOrUpdateSite() {
         // Kontrola, zda byla data odeslána metodou POST
@@ -224,48 +226,66 @@ class Site extends Model
      * @param  mixed $data
      * @return void
      */
-    public static function processNewSiteWithTemplate($data) {
-        self::$logger->info("[".$data["domain"]."] Zahajujeme vytváření nové stránky s šablonou.");
+    public static function processNewSiteWithTemplate($data, $site = null)
+    {
+        self::$logger->info("[" . $data["domain"] . "] Zahajujeme vytváření nové stránky s šablonou.");
 
         // Načtení informací o šabloně
         $template = Template::getTemplateById($data['template_id']);
         if (!$template) {
-            self::$logger->error("[".$data["domain"]."] Šablona s ID {$data['template_id']} nebyla nalezena.");
+            self::$logger->error("[" . $data["domain"] . "] Šablona s ID {$data['template_id']} nebyla nalezena.");
             return ['status' => false, 'message' => 'Šablona nebyla nalezena.'];
         }
-        self::$logger->info("[".$data["domain"]."] Šablona ".$data['template_id']." načtena úspěšně.");
+        self::$logger->info("[" . $data["domain"] . "] Šablona " . $data['template_id'] . " načtena úspěšně.");
 
         // Kopírování souborů
-        $sourceDir = "sablony/".$template['template_dir'];
-        $targetDir = 'templates/'.$data["template_dir"].'/';
+        $sourceDir = "sablony/" . $template['template_dir'];
+        $targetDir = 'templates/' . $data["template_dir"] . '/';
 
         if (!Template::copyFiles($sourceDir, $targetDir)) {
-            self::$logger->error("[".$data["domain"]."] Kopírování souborů se nezdařilo.");
+            self::$logger->error("[" . $data["domain"] . "] Kopírování souborů se nezdařilo.");
             return ['status' => false, 'message' => 'Kopírování souborů se nezdařilo.'];
         }
-        self::$logger->info("[".$data["domain"]."] Soubory byly úspěšně zkopírovány [".$sourceDir."] >>> [".$targetDir."]");
+        self::$logger->info("[" . $data["domain"] . "] Soubory byly úspěšně zkopírovány [" . $sourceDir . "] >>> [" . $targetDir . "]");
 
         // Vytvoření adresářů
         $domain = parse_url($template['demo_url'], PHP_URL_HOST);
         Template::createDomainDirectories($data["domain"]);
         UploadedFile::createGoogleCloudDirectory($data["domain"]);
-        self::$logger->info("[".$data["domain"]."] Adresáře byly vytvořeny.");
+        self::$logger->info("[" . $data["domain"] . "] Adresáře byly vytvořeny.");
 
         // Vytvoření URL
-        $urlData = ['url' => "/",
-                    'handler' => "getArticleDetails",
-                    'model' => "articles",
-                    'model_id' => 1,
-                    'domain' => $data["domain"]
-                    ];
-        $domainControl = new domainControl($capsule,self::$logger );
+        $urlData = [
+            'url' => "/",
+            'handler' => "getArticleDetails",
+            'model' => "articles",
+            'model_id' => 1,
+            'domain' => $data["domain"]
+        ];
+
+        $capsule = new Capsule;
+        $capsule->addConnection([
+            'driver' => $_SERVER['DB_DRIVER'],
+            'host' => $_SERVER['DB_HOST'],
+            'database' => $_SERVER['DB_NAME'],
+            'username' => $_SERVER['DB_USER'],
+            'password' => $_SERVER['DB_PASSWORD'],
+            'charset' => $_SERVER['DB_CHARSET'],
+            'collation' => $_SERVER['DB_COLLATION'],
+            'prefix' => $_SERVER['DB_PREFIX'],
+        ]);
+
+        $capsule->setAsGlobal();
+        $capsule->bootEloquent();
+
+        $domainControl = new domainControl($capsule, self::$logger);
         $result = $domainControl->createUrlIfNotDuplicate($urlData);
-                    
+
         if (!$result) {
-            self::$logger->error("[".$data["domain"]."] Vytvoření unikátní URL se nezdařilo.");
+            self::$logger->error("[" . $data["domain"] . "] Vytvoření unikátní URL se nezdařilo.");
             return ['status' => false, 'message' => 'Vytvoření unikátní URL se nezdařilo.'];
         }
-        self::$logger->info("[".$data["domain"]."] Unikátní URL byla vytvořena.");
+        self::$logger->info("[" . $data["domain"] . "] Unikátní URL byla vytvořena.");
 
         // Převod proměnných šablony do konfigurace stránky
         $configurations = [];
@@ -281,7 +301,7 @@ class Site extends Model
             }
         }
         $data['configurations'] = json_encode($configurations);
-    
+
         $analytics = [];
         if (isset($data['analytics_name']) && is_array($data['analytics_name'])) {
             foreach ($data['analytics_name'] as $index => $name) {
@@ -294,19 +314,22 @@ class Site extends Model
             }
         }
         $data['analytics'] = json_encode($analytics);
-        self::$logger->info("[".$data["domain"]."] Konfigurace byly nastaveny.");
+        self::$logger->info("[" . $data["domain"] . "] Konfigurace byly nastaveny.");
 
-        // Vytvoření nového záznamu stránky
-        $site = new self();
+        // Aktualizace existujícího záznamu stránky místo vytváření nového
+        if ($site === null) {
+            $site = new self();
+        }
         $site->fill($data);
         if ($site->save()) {
-            self::$logger->info("[".$data["domain"]."] Stránka byla úspěšně uložena.");
+            self::$logger->info("[" . $data["domain"] . "] Stránka byla úspěšně uložena.");
             return ['status' => true, 'message' => 'Stránka byla úspěšně uložena.'];
         } else {
-            self::$logger->error("[".$data["domain"]."] Uložení stránky se nezdařilo.");
+            self::$logger->error("[" . $data["domain"] . "] Uložení stránky se nezdařilo.");
             return ['status' => false, 'message' => 'Nepodařilo se uložit stránku.'];
         }
     }
+
 
 }
 
