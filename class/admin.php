@@ -126,7 +126,6 @@ class adminControl {
         $repeatpassword = $postData['repeat_password'] ?? '';
         $fullname = $postData['fullname'] ?? '';
         $phone = $postData['phone'] ?? '';
-        $role_id = 5;
         // ... (extrakce ostatních polí) ...
 
         // Ověření platnosti e-mailu
@@ -147,8 +146,14 @@ class adminControl {
             return false;
         }
 
+        // Příprava dodatečných parametrů jako pole
+        $additionalParams = [
+            'role_id' => $_SERVER["domain"]["default_role"]
+        ];
+
         // Pokus o registraci uživatele
-        $result = $this->auth->register($email, $password, $repeatpassword,$role_id);
+        $result = $this->auth->register($email, $password, $repeatpassword, $additionalParams);
+
 
         if ($result['error']) {
             // Registrace selhala
