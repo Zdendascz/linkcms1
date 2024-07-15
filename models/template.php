@@ -104,6 +104,14 @@ class Template extends Model
         $template->color_scheme = $formData['color_scheme'];
         $template->framework = $formData['framework'];
         $template->language = $formData['language'];
+
+        // Zpracování proměnné last_update
+        if (empty($formData['last_update'])) {
+            $template->last_update = date('Y-m-d');
+        } else {
+            $template->last_update = date('Y-m-d', strtotime($formData['last_update']));
+        }
+
         $template->last_update = $formData['last_update'];
         $template->compatibility = $formData['compatibility'];
         $template->demo_url = $formData['demo_url'];
