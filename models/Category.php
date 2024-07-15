@@ -321,14 +321,14 @@ class Category extends Model
             $category->parent_id = $data['parent_id'];
         }
         
-        if($data['url'] == ''){
-            if($_SERVER['SERVER_PROTOCOL'] == 'HTTP/1.1')
-                $extUrl = "http://".$_SERVER['SITE_DOMAIN']."/".$data['url_manual'];
-            else
-            $extUrl = "https://".$_SERVER['SITE_DOMAIN']."/".$data['url_manual'];
-        }
-        else
-            $extUrl = $data['url_manual'];
+        // if($data['url'] == ''){
+        //     if($_SERVER['SERVER_PROTOCOL'] == 'HTTP/1.1')
+        //         $extUrl = "http://".$_SERVER['SITE_DOMAIN']."/".$data['url_manual'];
+        //     else
+        //     $extUrl = "https://".$_SERVER['SITE_DOMAIN']."/".$data['url_manual'];
+        // }
+        // else
+        $extUrl = $data['url_manual'];
 
         
         $category->is_active = $data['is_active'] ?? 1;
