@@ -112,7 +112,6 @@ class Template extends Model
             $template->last_update = date('Y-m-d', strtotime($formData['last_update']));
         }
 
-        $template->last_update = $formData['last_update'];
         $template->compatibility = $formData['compatibility'];
         $template->demo_url = $formData['demo_url'];
         $template->documentation_url = $formData['documentation_url'];
