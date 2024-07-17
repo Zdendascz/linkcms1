@@ -341,7 +341,7 @@ class Article extends Model {
      */
     public static function getAllArticlesWithCategories() {
         // Přidání podmínky where do dotazu pro filtraci článků podle site_id
-        $articles = self::with('categories')->where('site_id', $_SERVER["SITE_ID"])->orderBy('created_at', 'desc')->get();
+        $articles = self::with('categories')->where('site_id', $_SERVER["SITE_ID"])->orderBy('updated_at', 'desc')->get();
     
         // Transformace 'meta' dat z JSON na PHP pole pro každý článek, pokud ještě nejsou pole
         $articles->transform(function ($article) {
