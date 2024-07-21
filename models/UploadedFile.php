@@ -264,7 +264,8 @@ class UploadedFile extends Model {
 
     public static function getAllFilesWithVariants($type = false)
     {
-        $query = self::with('variants')->orderBy('created_at', 'desc');
+        $siteId = $_SERVER['SITE_ID'];
+        $query = self::with('variants')->orderBy('created_at', 'desc')->where('site_id', $siteId);
         if ($type == 'image') {
             $query->where('mime_type', 'like', 'image/%');
         } elseif ($type === 'file') {
