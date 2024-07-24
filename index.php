@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Europe/Prague');
 require 'vendor/autoload.php';
 require 'class/control.php';
 require 'class/admin.php';

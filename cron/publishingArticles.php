@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Europe/Prague');
 require __DIR__ . '/../cron/bootstrap.php';
 
 use linkcms1\Models\Article;
