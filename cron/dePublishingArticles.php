@@ -14,16 +14,16 @@ $logger->pushHandler($logHandler);
 $currentDateTime = date('Y-m-d H:i:s');
 
 // info o startu cronu
-$logger->info('Cron Publikace článků proběhl', ['time' => $currentDateTime]);
+$logger->info('Cron Depublikace článků proběhl', ['time' => $currentDateTime]);
 
 // Načtení článků, které mají status 'development' a jejich publish_at je starší než aktuální datum a čas
-$articles = Article::where('status', 'development')
-                    ->where('publish_at', '<', $currentDateTime)
+$articles = Article::where('status', 'active')
+                    ->where('publish_end_at', '<', $currentDateTime)
                     ->get();
 
 // Procházení článků a aktualizace jejich statusu na 'active'
 foreach ($articles as $article) {
-    $article->status = 'active';
+    $article->status = 'suspend';
     $article->save();
 
     // Zápis do loggeru
