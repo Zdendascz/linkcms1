@@ -648,7 +648,7 @@ class Article extends Model {
             $query->where('site_id', $siteId)
                   ->where('status', 'active')
                   ->with('categories')
-                  ->orderBy('created_at', 'desc')
+                  ->orderBy('publish_at', 'desc')
                   ->skip($offset)
                   ->take($pageSize); // Omezení počtu článků na stránku
         }])->find($categoryId);
