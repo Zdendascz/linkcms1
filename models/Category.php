@@ -576,5 +576,39 @@ class Category extends Model
         return $this->morphToMany(UploadedFile::class, 'imageable', 'imageables', 'imageable_id', 'image_id')
                     ->withPivot('imageable_type');
     }
+
+    /**
+     * Vrací pole kategorií pro daný $site_id, $navigation_id a $parent_id
+     * bez potomků a bez specifikace CSS.
+     *
+     * @param int $siteId
+     * @param int|null $navigation_id
+     * @param int|null $parentId
+     * @return array
+     */
+    public static function getCategories($siteId, $navigation_id = null, $parentId = null) {
+        $categories = self::where('parent_id', $parentId)
+                        ->where('site_id', $siteId)
+                        ->where('navigation_id', $navigation_id)
+                        ->where('is_active', 'active')
+                        ->orderBy('order_cat', 'asc')
+                        ->get();
+
+        $categoryData = [];
+        foreach ($categories as $category) {
+            $categoryData[] = [
+                'id' => $category->id,
+                'title' => $category->title,
+                'display_name' => $category->display_name,
+                'top_text' => $category->top_text,
+                'bottom_text' => $category->bottom_text,
+                'url' => $category->url,
+                'meta' => json_decode($category->meta, true),
+                // lze přidat další požadované atributy
+            ];
+        }
+
+        return $categoryData;
+    }
 }
 ?>

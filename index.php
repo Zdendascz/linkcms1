@@ -553,8 +553,12 @@ for($i=0;$i<count($webNavigations);$i++){
                                                                                         null,
                                                                                         $webNavigations[$i]);
     
-    }
+}
 
+for($i=0;$i<count($webNavigations);$i++){
+    $variables['pureNavigation'][$i] = Category::getCategories( $_SERVER["SITE_ID"], $webNavigations[$i]["id"]);
+    
+}
 Tracy\Debugger::barDump($domainData, 'Domain data');
 Tracy\Debugger::barDump($pageData, 'Page data');
 Tracy\Debugger::barDump($admin->getUserData(), 'User data');

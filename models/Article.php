@@ -472,6 +472,9 @@ class Article extends Model {
                 'title' => $article->title,
                 'url' => $article->url ? $article->url->url : null,
                 'snippet' => $article->snippet,
+                'publish_at' => $article->publish_at,
+                'publish_at' => $article->publish_at,
+                'manual_update_at' => $article->manual_update_at,
                 'meta' => is_string($article->meta) ? json_decode($article->meta, true) : $article->meta,
                 'author_name' => $article->user ? $article->user->name : 'Unknown',
                 'files' => $filesAndImages['files'], // Přidání dat o souborech
