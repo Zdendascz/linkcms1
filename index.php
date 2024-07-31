@@ -122,6 +122,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) u
     $r->addRoute('POST', '/doLogin', 'loginHandler');
     $r->addRoute('GET', '/{string:.+}', function($string) {});
     $r->addRoute('POST', '/{string:.+}', function($string) {});
+
 });
 
 //******************** Fetch method and URI from somewhere
@@ -198,6 +199,7 @@ $handlers = [
     "noweb" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "fnc404" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "robotsTxt" => array("\linkcms1\domainControl",array($capsule,$logger)),
+    "endpointOk" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "generateCategorySitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "generateArticleSitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
     "generateImageSitemap" => array("\linkcms1\domainControl",array($capsule,$logger)),
@@ -212,6 +214,7 @@ $handlers = [
     "registerUser" => array("linkcms1\adminControl", array($capsule, $logger, $auth))];
 
 //******************** zpracování routeru    
+$goRender = true; // v případě false blokuje renderování twigu
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
         // ... 404 Not Found
@@ -509,6 +512,14 @@ switch ($routeInfo[0]) {
                     $renderPage = "home.twig";
                     break;
                 }
+                case 'endpoint' : {
+                    // $catData = new linkcms1\Models\Category();
+                    // $pageData = $catData->getCategoryInfo($vars[6]);
+
+                    // $renderPage = "home.twig";
+                    $goRender = false;
+                    break;
+                }
                 default : {
                     if(isset($_SERVER["SITE_NODOMAIN"]))
                         $renderPage = "noweb.twig";
@@ -590,7 +601,8 @@ if($vars[5] == "code"){
 $variables['displayData']['body'] = $interpretedHTML;
 }
 // Vykreslení šablony
-echo $twig->render($renderPage, $variables);
+if($goRender)
+    echo $twig->render($renderPage, $variables);
 
 /**
  * modify_query - funkce umožňuje manipulovat s url v twigu

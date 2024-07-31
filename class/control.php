@@ -495,6 +495,11 @@ class domainControl extends Model {
         echo $xml->asXML();
         exit;
     }
+
+    public function endpointOk() {
+        http_response_code(200);
+    echo json_encode(['status' => 'success', 'message' => 'No data stored']);
+    }
     
 }
 
